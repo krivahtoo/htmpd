@@ -1,2 +1,2 @@
 # htmpd
-lightweight MPD web client
+lightweight [MPD](https://www.musicpd.org/) (Music Player Daemon) web client
