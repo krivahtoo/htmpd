@@ -1,0 +1,12 @@
+/* In your CSS */
+:root {
+  --color-primary: #6366f1;
+  --color-secondary: rgb(239, 68, 68);
+  /* ... */
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
