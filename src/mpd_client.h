@@ -5,9 +5,6 @@
 
 #include "mongoose.h"
 
-#define MAX_SIZE 1024 * 100
-#define MAX_ELEMENTS_PER_PAGE 512
-
 enum mpd_cmds {
   MPD_GET_QUEUE,
   MPD_GET_BROWSE,
@@ -41,6 +38,7 @@ enum mpd_cmds {
   MPD_TOGGLE_SINGLE,
   MPD_TOGGLE_CROSSFADE,
   MPD_TOGGLE_REPEAT,
+  MPD_SEEK_CURRENT,
   MPD_AUTHORIZE
 };
 
@@ -56,17 +54,11 @@ struct t_mpd {
   unsigned int port;
   char host[128];
   char *password;
-  char *gpass;
 
   struct mpd_connection *conn;
   enum mpd_conn_states conn_state;
 
-  /* Reponse Buffer */
-  char buf[MAX_SIZE];
-  size_t buf_size;
-
-  int song_id;
-  unsigned queue_version;
+  const unsigned *version;
 };
 
 extern struct t_mpd mpd;

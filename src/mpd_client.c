@@ -1,4 +1,3 @@
-#include "mongoose.h"
 #include "parson.h"
 #include "mpd_client.h"
 #include <string.h>
@@ -9,45 +8,13 @@ enum mpd_cmds get_cmd_id(JSON_Object *obj) {
   return (int)json_object_get_number(obj, "cmd_id");
 }
 
-char *mpd_get_title(struct mpd_song const *song) {
+/*** Get title or fallback to uri ***/
+char *get_title(struct mpd_song const *song) {
   char *str;
 
   str = (char *)mpd_song_get_tag(song, MPD_TAG_TITLE, 0);
   if (str == NULL) {
     str = (char *)mpd_song_get_uri(song);
-  }
-
-  return str;
-}
-
-char *mpd_get_album(struct mpd_song const *song) {
-  char *str;
-
-  str = (char *)mpd_song_get_tag(song, MPD_TAG_ALBUM, 0);
-  if (str == NULL) {
-    str = "-";
-  }
-
-  return str;
-}
-
-char *mpd_get_artist(struct mpd_song const *song) {
-  char *str;
-
-  str = (char *)mpd_song_get_tag(song, MPD_TAG_ARTIST, 0);
-  if (str == NULL) {
-    str = "-";
-  }
-
-  return str;
-}
-
-char *mpd_get_year(struct mpd_song const *song) {
-  char *str;
-
-  str = (char *)mpd_song_get_tag(song, MPD_TAG_DATE, 0);
-  if (str == NULL) {
-    str = "-";
   }
 
   return str;
@@ -72,9 +39,9 @@ void mpd_send_queue(struct mg_connection *c) {
       curr_song = mpd_entity_get_song(entity);
       JSON_Value *song = json_value_init_object();
       JSON_Object *songObj = json_value_get_object(song);
-      json_object_set_string(songObj, "title", mpd_get_title(curr_song));
-      json_object_set_string(songObj, "artist", mpd_get_artist(curr_song));
-      json_object_set_string(songObj, "album", mpd_get_album(curr_song));
+      json_object_set_string(songObj, "title", get_title(curr_song));
+      json_object_set_string(songObj, "artist", mpd_song_get_tag(curr_song, MPD_TAG_ARTIST, 0));
+      json_object_set_string(songObj, "album", mpd_song_get_tag(curr_song, MPD_TAG_ALBUM, 0));
       json_object_set_string(songObj, "uri", mpd_song_get_uri(curr_song));
       json_object_set_number(songObj, "duration", mpd_song_get_duration(curr_song));
       json_object_set_number(songObj, "id", mpd_song_get_id(curr_song));
@@ -131,9 +98,9 @@ void mpd_send_state(struct mg_connection *c) {
   if(mpd_status_get_state(status) == MPD_STATE_PLAY || mpd_status_get_state(status) == MPD_STATE_PAUSE) {
     const struct mpd_song *curr_song = mpd_run_current_song(mpd.conn);
     if(curr_song != NULL) {
-      json_object_set_string(song, "title", mpd_get_title(curr_song));
-      json_object_set_string(song, "artist", mpd_get_artist(curr_song));
-      json_object_set_string(song, "album", mpd_get_album(curr_song));
+      json_object_set_string(song, "title", get_title(curr_song));
+      json_object_set_string(song, "artist", mpd_song_get_tag(curr_song, MPD_TAG_ARTIST, 0));
+      json_object_set_string(song, "album", mpd_song_get_tag(curr_song, MPD_TAG_ALBUM, 0));
       json_object_set_number(song, "duration", mpd_song_get_duration(curr_song));
       json_object_set_number(song, "id", mpd_song_get_id(curr_song));
       json_object_set_number(song, "pos", mpd_song_get_pos(curr_song));
@@ -207,6 +174,7 @@ void mpd_poll(struct mg_mgr *mgr) {
               }
             }
             LOG(LL_DEBUG, ("MPD connected"));
+            mpd.version = mpd_connection_get_server_version(mpd.conn);
             mpd.conn_state = MPD_CONNECTED;
             if (!c->is_websocket || c == NULL) {
               continue;
@@ -237,6 +205,18 @@ void mpd_poll(struct mg_mgr *mgr) {
         mpd.conn_state = MPD_DISCONNECTED;
         break;
     }
+    // Report errors
+    if (mpd_connection_get_error(mpd.conn) != MPD_ERROR_SUCCESS) {
+      LOG(LL_ERROR, ("MPD connection failed: %s", mpd_connection_get_error_message(mpd.conn)));
+      if (c->is_websocket) {
+        char * msg = NULL;
+        sprintf(msg, "{\"type\":\"error\",\"error\":\"%s\"}", mpd_connection_get_error_message(mpd.conn));
+        mg_ws_send(c, msg, strlen(msg), WEBSOCKET_OP_TEXT);
+      }
+      if (!mpd_connection_clear_error(mpd.conn)) {
+        mpd.conn_state = MPD_FAILURE;
+      }
+    }
   }
 }
 
@@ -249,9 +229,13 @@ void mpd_callback(struct mg_connection *c, struct mg_ws_message *wm) {
       if (mpd.conn_state == MPD_CONNECTED) {
         if (mpd_run_update(mpd.conn, NULL)) {
           LOG(LL_DEBUG, ("MPD update database"));
+          char * msg = "{\"type\":\"update_db\",\"success\":true}";
+          mg_ws_send(c, msg, strlen(msg), WEBSOCKET_OP_TEXT);
           mpd.conn_state = MPD_RECONNECT;
         } else {
           LOG(LL_ERROR, ("MPD update database failed: %s", mpd_connection_get_error_message(mpd.conn)));
+          char * msg = "{\"type\":\"update_db\",\"success\":false,\"error\":\"%s\"}", mpd_connection_get_error_message(mpd.conn);
+          mg_ws_send(c, msg, strlen(msg), WEBSOCKET_OP_TEXT);
           mpd.conn_state = MPD_FAILURE;
         }
       }
@@ -287,16 +271,19 @@ void mpd_callback(struct mg_connection *c, struct mg_ws_message *wm) {
       mpd_run_load(mpd.conn, json_object_get_string(obj, "name"));
       break;
     case MPD_TOGGLE_RANDOM:
-      mpd_run_random(mpd.conn, json_object_get_number(obj, "mode"));
+      mpd_run_random(mpd.conn, json_object_get_boolean(obj, "mode"));
       break;
     case MPD_TOGGLE_REPEAT:
-      mpd_run_repeat(mpd.conn, json_object_get_number(obj, "mode"));
+      mpd_run_repeat(mpd.conn, json_object_get_boolean(obj, "mode"));
       break;
     case MPD_TOGGLE_SINGLE:
-      mpd_run_single(mpd.conn, json_object_get_number(obj, "mode"));
+      mpd_run_single(mpd.conn, json_object_get_boolean(obj, "mode"));
       break;
     case MPD_TOGGLE_CONSUME:
-      mpd_run_consume(mpd.conn, json_object_get_number(obj, "mode"));
+      mpd_run_consume(mpd.conn, json_object_get_boolean(obj, "mode"));
+      break;
+    case MPD_TOGGLE_CROSSFADE:
+      mpd_run_crossfade(mpd.conn, json_object_get_number(obj, "seconds"));
       break;
     case MPD_GET_QUEUE:
       mpd_send_queue(c);
@@ -306,6 +293,20 @@ void mpd_callback(struct mg_connection *c, struct mg_ws_message *wm) {
       break;
     case MPD_SEARCH:
       mpd_search(c, json_object_get_string(obj, "query"));
+      break;
+    case MPD_GET_OUTPUTS:
+      mpd_send_output(c);
+      break;
+    case MPD_PLAY_TRACK:
+      mpd_run_play_id(mpd.conn, json_object_get_number(obj, "id"));
+      break;
+    case MPD_SEEK_CURRENT:
+      mpd_run_seek_current(mpd.conn, json_object_get_number(obj, "pos"), json_object_get_boolean(obj, "relative"));
+      break;
+    default:
+      LOG(LL_ERROR, ("Unknown command: %d", cmd_id));
+      char *msg = "{\"type\":\"error\",\"error\":\"unknown command\"}";
+      mg_ws_send(c, msg, strlen(msg), WEBSOCKET_OP_TEXT);
       break;
   }
   json_value_free(data);
@@ -343,7 +344,7 @@ void mpd_search(struct mg_connection *c, const char *query) {
                 JSON_Object *song = json_value_get_object(song_val);
                 json_object_set_string(song, "artist", mpd_song_get_tag(curr_song, MPD_TAG_ARTIST, 0));
                 json_object_set_string(song, "album", mpd_song_get_tag(curr_song, MPD_TAG_ALBUM, 0));
-                json_object_set_string(song, "title", mpd_song_get_tag(curr_song, MPD_TAG_TITLE, 0));
+                json_object_set_string(song, "title", get_title(curr_song));
                 json_object_set_number(song, "id", mpd_song_get_id(curr_song));
                 json_array_append_value(songs, song_val);
                 mpd_song_free(curr_song);
