@@ -64,4 +64,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+    print("Created %s" % sys.argv[1])
 

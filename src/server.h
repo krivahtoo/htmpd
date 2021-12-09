@@ -11,7 +11,7 @@ struct embedded_file {
 };
 
 const struct embedded_file *find_embedded_file(const char *name);
-void http_callback(struct mg_connection *c, int ev, void *ev_data, void *fn_data);
+void http_callback(struct mg_connection *c, struct mg_http_message *hm);
 
 #endif
 
