@@ -4,7 +4,7 @@
 
 <section class="antialiased bg-gray-100 text-gray-600 h-screen px-4">
   <div class="flex flex-col justify-center">
-    <SongList />
+    <SongList type="playlist" />
   </div>
 </section>
 

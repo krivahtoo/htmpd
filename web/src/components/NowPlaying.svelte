@@ -27,7 +27,7 @@
 
 <div
   in:fly="{{ duration: 200, delay: 0, y: 200 }}"
-  class="fixed flex backdrop-filter backdrop-blur-3xl bottom-2 w-11/12 h-20 z-50 ml-7 align-middle justify-items-center rounded-3xl bg-blue-100 bg-opacity-60">
+  class="fixed flex backdrop-filter backdrop-blur-3xl bottom-2 w-11/12 h-20 z-50 ml-7 align-middle justify-items-center rounded-3xl bg-blue-100 bg-opacity-50 shadow-lg drop-shadow-2xl">
   <img
     in:fly="{{delay: 200, duration: 300, y: 100,}}"
     class="w-16 my-auto ml-6 rounded-full shadow-lg drop-shadow-lg overflow-hidden bg-blue-200"
@@ -36,7 +36,7 @@
   <div class="ml-4 my-auto w-1/6">
     <h1
       in:fade="{{delay: 250, duration: 300}}"
-      class="mb-1 text-xl font-bold text-black">{ song.title }</h1>
+      class="mb-1 text-xl font-bold text-black">{ (song.title.length > 25) ? song.title.substr(0, 24) + '...' : song.title }</h1>
     <h2
       in:fade="{{delay: 500, duration: 300}}"
       class="text-xs text-gray-400">{ (song.artist.length > 25) ? song.artist.substr(0, 24) + '...' : song.artist }</h2>

@@ -1,5 +1,7 @@
 <script>
-  // import { onMount } from 'svelte'
+  export let type = 'queue'
+
+  import { onMount } from 'svelte'
   import { totalTime, queue } from './../stores.js'
 
   import Song from './Song.svelte'
@@ -7,15 +9,29 @@
   let songs = []
   let time = ''
 
-  totalTime.subscribe(t => {
-    let h = Math.floor(t / 3600);
-    let m = Math.floor(t % 3600 / 60);
-    let s = Math.floor(t % 3600 % 60);
+  onMount(() => {
+    switch (type) {
+      case 'queue':
+        queue.subscribe(q => {
+          songs = q
+        })
+        totalTime.subscribe(t => {
+          let h = Math.floor(t / 3600);
+          let m = Math.floor(t % 3600 / 60);
+          let s = Math.floor(t % 3600 % 60);
 
-    time = `${h} hours ${m} minutes ${s} seconds`
-  })
-  queue.subscribe(q => {
-    songs = q
+          time = `${h} hours ${m} minutes ${s} seconds`
+        })
+        break
+      case 'browse':
+        songs = []
+        time = 0
+        break
+      case 'playlist':
+        songs = []
+        time = 0
+        break
+    }
   })
 </script>
 
