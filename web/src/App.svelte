@@ -18,9 +18,9 @@
 
     // Connection opened
     ws.addEventListener('open', function (event) {
-      ws.send(JSON.stringify({
-        cmd_id: getCommand('queue') || 0
-      }))
+      // ws.send(JSON.stringify({
+      //   cmd_id: getCommand('queue') || 0
+      // }))
       connected = true
     })
     ws.addEventListener('message', function (event) {
@@ -40,6 +40,9 @@
           status.set(data)
           break
       }
+    })
+    ws.addEventListener('close', function (event) {
+      connected = false
     })
   })
 
@@ -80,6 +83,7 @@
   <NowPlaying
     on:next="{ () => runCommand('next') }"
     on:toggle="{ () => runCommand('pause') }"
-    on:prev="{ () => runCommand('prev') }"  />
+    on:prev="{ () => runCommand('prev') }"
+    on:seek="{ e => runCommand('seek', e.detail) }" />
 </main>
 

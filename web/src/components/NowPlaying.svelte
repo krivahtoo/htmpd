@@ -13,7 +13,7 @@
   const dispatch = createEventDispatcher()
 
   current.subscribe(v => {
-    song = v
+    if (v) song = v
   })
   playing.subscribe(v => {
     isPlaying = v
@@ -21,6 +21,18 @@
   status.subscribe(v => {
     if (song.id === v.current) {
       currentTime = v.elapsedTime/1000 || 0
+    }
+    // Player stopped
+    if (v.state == 1) {
+      song = {
+        title: "--",
+        artist:"-",
+        album:"-",
+        duration:100,
+        id:1,
+        pos:1
+      }
+      currentTime = 0
     }
   })
 </script>
@@ -67,15 +79,10 @@
     </button>
   </div>
   <div class="relative w-full sm:w-1/2 md:w-7/12 lg:w-4/6 ml-5 my-auto">
-    <!-- <div class="bg-blue-300 h-2 w-full rounded-lg"></div> -->
-    <!-- <div -->
-    <!--   class="bg-blue-500 h-2 rounded-lg absolute top-0" -->
-    <!--   style="width: { currentTime/song.duration * 100}%;"> -->
-    <!--   <div class="bg-blue-600 h-4 w-4 rounded-full absolute right-0 -top-1"></div> -->
-    <!-- </div> -->
     <input
       class="rounded-lg overflow-hidden appearance-none bg-blue-300 h-3 w-full"
-      type="range" min="0" max="{ song.duration }" step="1" value="{ currentTime }" />
+      type="range" min="0" max="{ song.duration }" step="1" bind:value={currentTime}
+      on:change="{ () => dispatch('seek', { id: song.id, pos: currentTime }) }" />
   </div>
   <div class="flex justify-end w-full sm:w-auto pt-1 sm:pt-0 my-auto">
     <span class="text-xs text-gray-700 uppercase font-medium pl-2">

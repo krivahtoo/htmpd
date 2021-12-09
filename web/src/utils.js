@@ -31,6 +31,8 @@ const commands = [
   'toggle_single',
   'toggle_crossfade',
   'toggle_repeat',
+  'seek_current',
+  'get_commands',
   'authorize'
 ]
 
@@ -52,5 +54,4 @@ export const secondsToString = (t) => {
   }
   return ((h > 0) ? h + ':' : '' ) + m + ':' + s
 }
-
 

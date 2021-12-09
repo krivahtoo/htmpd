@@ -1,5 +1,9 @@
 #include "parson.h"
 #include "mpd_client.h"
+#include <mpd/audio_format.h>
+#include <mpd/song.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 struct t_mpd mpd;
@@ -93,7 +97,6 @@ void mpd_send_state(struct mg_connection *c) {
   json_object_set_number(obj, "crossfade", mpd_status_get_crossfade(status));
   json_object_set_number(obj, "bitrate", mpd_status_get_kbit_rate(status));
   json_object_set_number(obj, "current", mpd_status_get_song_id(status));
-  json_object_set_number(obj, "channels", mpd_status_get_audio_format(status)->channels);
   
   if(mpd_status_get_state(status) == MPD_STATE_PLAY || mpd_status_get_state(status) == MPD_STATE_PAUSE) {
     const struct mpd_song *curr_song = mpd_run_current_song(mpd.conn);
@@ -234,7 +237,8 @@ void mpd_callback(struct mg_connection *c, struct mg_ws_message *wm) {
           mpd.conn_state = MPD_RECONNECT;
         } else {
           LOG(LL_ERROR, ("MPD update database failed: %s", mpd_connection_get_error_message(mpd.conn)));
-          char * msg = "{\"type\":\"update_db\",\"success\":false,\"error\":\"%s\"}", mpd_connection_get_error_message(mpd.conn);
+          char * msg = NULL;
+          sprintf(msg, "{\"type\":\"update_db\",\"success\":false,\"error\":\"%s\"}", mpd_connection_get_error_message(mpd.conn));
           mg_ws_send(c, msg, strlen(msg), WEBSOCKET_OP_TEXT);
           mpd.conn_state = MPD_FAILURE;
         }
@@ -302,6 +306,23 @@ void mpd_callback(struct mg_connection *c, struct mg_ws_message *wm) {
       break;
     case MPD_SEEK_CURRENT:
       mpd_run_seek_current(mpd.conn, json_object_get_number(obj, "pos"), json_object_get_boolean(obj, "relative"));
+      break;
+    case MPD_GET_COMMANDS:
+      if(mpd_send_allowed_commands(mpd.conn)) {
+        struct mpd_pair *command;
+        JSON_Value *data = json_value_init_object();
+        JSON_Object *obj = json_value_get_object(data);
+        JSON_Value *cmds = json_value_init_array();
+        JSON_Array *cmds_arr = json_value_get_array(cmds);
+        while ((command = mpd_recv_command_pair(mpd.conn)) != NULL) {
+          json_array_append_string(cmds_arr, command->value);
+          mpd_return_pair(mpd.conn, command);
+        }
+        json_object_set_string(obj, "type", "commands");
+        json_object_set_value(obj, "commands", cmds);
+        char * msg = json_serialize_to_string(data);
+        mg_ws_send(c, msg, strlen(msg), WEBSOCKET_OP_TEXT);
+      }
       break;
     default:
       LOG(LL_ERROR, ("Unknown command: %d", cmd_id));
