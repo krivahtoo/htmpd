@@ -182,7 +182,11 @@ void mpd_poll(struct mg_mgr *mgr) {
             if (!c->is_websocket || c == NULL) {
               continue;
             }
-            char * msg = "{\"type\":\"connected\"}";
+            JSON_Value *data = json_value_init_object();
+            JSON_Object *obj = json_value_get_object(data);
+            json_object_set_string(obj, "type", "connected");
+            // json_object_set_string(obj, "version", mpd.version);
+            char *msg = json_serialize_to_string(data);
             mg_ws_send(c, msg, strlen(msg), WEBSOCKET_OP_TEXT);
           }
         }
@@ -212,9 +216,12 @@ void mpd_poll(struct mg_mgr *mgr) {
     if (mpd_connection_get_error(mpd.conn) != MPD_ERROR_SUCCESS) {
       LOG(LL_ERROR, ("MPD connection failed: %s", mpd_connection_get_error_message(mpd.conn)));
       if (c->is_websocket) {
-        char * msg = NULL;
-        sprintf(msg, "{\"type\":\"error\",\"error\":\"%s\"}", mpd_connection_get_error_message(mpd.conn));
-        mg_ws_send(c, msg, strlen(msg), WEBSOCKET_OP_TEXT);
+        JSON_Value *data = json_value_init_object();
+        JSON_Object *obj = json_value_get_object(data);
+        json_object_set_string(obj, "type", "error");
+        json_object_set_string(obj, "error", mpd_connection_get_error_message(mpd.conn));
+        char *json_str = json_serialize_to_string(data);
+        mg_ws_send(c, json_str, strlen(json_str), WEBSOCKET_OP_TEXT);
       }
       if (!mpd_connection_clear_error(mpd.conn)) {
         mpd.conn_state = MPD_FAILURE;
@@ -232,13 +239,21 @@ void mpd_callback(struct mg_connection *c, struct mg_ws_message *wm) {
       if (mpd.conn_state == MPD_CONNECTED) {
         if (mpd_run_update(mpd.conn, NULL)) {
           LOG(LL_DEBUG, ("MPD update database"));
-          char * msg = "{\"type\":\"update_db\",\"success\":true}";
+          JSON_Value *data = json_value_init_object();
+          JSON_Object *obj = json_value_get_object(data);
+          json_object_set_string(obj, "type", "update");
+          json_object_set_boolean(obj, "success", true);
+          char *msg = json_serialize_to_string(data);
           mg_ws_send(c, msg, strlen(msg), WEBSOCKET_OP_TEXT);
           mpd.conn_state = MPD_RECONNECT;
         } else {
           LOG(LL_ERROR, ("MPD update database failed: %s", mpd_connection_get_error_message(mpd.conn)));
-          char * msg = NULL;
-          sprintf(msg, "{\"type\":\"update_db\",\"success\":false,\"error\":\"%s\"}", mpd_connection_get_error_message(mpd.conn));
+          JSON_Value *data = json_value_init_object();
+          JSON_Object *obj = json_value_get_object(data);
+          json_object_set_string(obj, "type", "update");
+          json_object_set_boolean(obj, "success", false);
+          json_object_set_string(obj, "error", mpd_connection_get_error_message(mpd.conn));
+          char *msg = json_serialize_to_string(data);
           mg_ws_send(c, msg, strlen(msg), WEBSOCKET_OP_TEXT);
           mpd.conn_state = MPD_FAILURE;
         }
@@ -326,7 +341,11 @@ void mpd_callback(struct mg_connection *c, struct mg_ws_message *wm) {
       break;
     default:
       LOG(LL_ERROR, ("Unknown command: %d", cmd_id));
-      char *msg = "{\"type\":\"error\",\"error\":\"unknown command\"}";
+      JSON_Value *data = json_value_init_object();
+      JSON_Object *obj = json_value_get_object(data);
+      json_object_set_string(obj, "type", "error");
+      json_object_set_string(obj, "error", "Unknown command");
+      char *msg = json_serialize_to_string(data);
       mg_ws_send(c, msg, strlen(msg), WEBSOCKET_OP_TEXT);
       break;
   }
