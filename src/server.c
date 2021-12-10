@@ -14,15 +14,12 @@ void http_callback(struct mg_connection *c, struct mg_http_message *hm) {
   // NOTE: Somehow mongoose doesn't parse uri correctly.
   char *delim = " ";
   char *uri = strtok((char *)hm->uri.ptr, delim);
-  // delim = "?";
-  // uri = strtok(uri, delim);
   const struct embedded_file *req_file;
   if (!strcmp(uri, "/")) {
     req_file = find_embedded_file("/index.html");
   } else {
     req_file = find_embedded_file(uri);
   }
-  printf("%s\n", uri);
   if (req_file) {
     char *headers = (char*)malloc(50 * sizeof(char));
     sprintf(headers, "Content-Type: %s\r\n", req_file->mimetype);

@@ -1,12 +1,14 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include <math.h>
 #include <assert.h>
 #include <signal.h>
+#include <stddef.h>
+#include <string.h>
 #include <time.h>
 
 #define  _GNU_SOURCE
 #include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
 
 #define MG_ENABLE_LOG 1
 #define SARG_NO_FILE
@@ -14,6 +16,7 @@
 #include "mongoose.h"
 #include "server.h"
 #include "mpd_client.h"
+#include "utils.h"
 
 static sarg_opt opts[] = {
   {"h", "help", "show help text", BOOL, NULL},
@@ -31,7 +34,7 @@ static bool run = true;
 
 void sig_handler(int sig_num) {
   // (void) sig_num;
-  LOG(LL_INFO, ("Caught signal %d", sig_num));
+  printf("Caught signal %d\n\nShutting down.\n", sig_num);
   run = false;
 }
 
@@ -46,6 +49,34 @@ void server_handler(struct mg_connection *c, int ev, void *ev_data, void *fn_dat
       mg_ws_upgrade(c, hm, NULL);
     } else if (mg_http_match_uri(hm, "/rest")) {
       mg_http_reply(c, 200, "", "{\"result\": \"%s\"}\n", "Hello World");
+    } else if (mg_http_match_uri(hm, "/*.mp3")) {
+      char *delim = " ";
+      char out[100];
+      char *uri = strtok((char *)hm->uri.ptr, delim);
+      uri = strtok(uri, "/");
+      urldecode(out, uri);
+
+      char *tmp_img = "/tmp/.htmpd-%s-artwork.png";
+      char *image = malloc(strlen(tmp_img) + strlen(out));
+      sprintf(image, tmp_img, out);
+      struct mg_http_serve_opts opts = {.mime_types = "png=image/png",
+                                    .extra_headers = ""};
+      if (access(image, F_OK) == 0) {
+        LOG(LL_INFO, ("Serving cached %s", image));
+        mg_http_serve_file(c, hm, image, &opts);
+      } else {
+        char *music_dir = malloc(strlen(getenv("HOME")) + strlen("/Music"));
+        sprintf(music_dir, "%s/Music", getenv("HOME"));
+        GdkPixbuf *pixbuf = retrieve_artwork(music_dir, out);
+        if (pixbuf) {
+          gdk_pixbuf_save(pixbuf, image, "png", NULL, NULL);
+          mg_http_serve_file(c, hm, image, &opts);
+        } else {
+          mg_http_reply(c, 404, "", "Not found\n");
+        }
+        free(music_dir);
+      }
+      free(image);
     } else {
 #ifdef USE_DYNAMIC_WEB_PAGE
       // Serve static files from web_root.
@@ -57,10 +88,8 @@ void server_handler(struct mg_connection *c, int ev, void *ev_data, void *fn_dat
 #endif
     }
   } else if (ev == MG_EV_WS_MSG) {
-    // Got websocket frame. Received data is wm->data. Echo it back!
     struct mg_ws_message *wm = (struct mg_ws_message *) ev_data;
     mpd_callback(c, wm);
-    // mg_ws_send(c, wm->data.ptr, wm->data.len, WEBSOCKET_OP_TEXT);
   }
   (void) fn_data;
 }
@@ -71,6 +100,7 @@ int main(int argc, const char **argv)
   sarg_result *res;
   struct mg_mgr mgr;  // Event manager
   time_t current_timer = 0, last_timer = 0;
+  char *verbose = malloc(sizeof(char) * 2);
 
   int ret = sarg_init(&root, opts, "htmpd");
   assert(ret == SARG_ERR_SUCCESS);
@@ -85,10 +115,6 @@ int main(int argc, const char **argv)
 
   // check if help flag was set
   ret = sarg_get(&root, "help", &res);
-  // assert actually never fails,
-  // if the option was initialized in sarg_init
-  assert(ret == SARG_ERR_SUCCESS);
-
   if(res->bool_val) {
     printf("htmpd v0.1.0 lightweight modern MPD web client\n\n");
     sarg_help_print(&root);
@@ -101,6 +127,7 @@ int main(int argc, const char **argv)
   assert(ret == SARG_ERR_SUCCESS);
 
   printf("verbosity set to %d\n", res->count);
+  sprintf(verbose, "%d", res->count);
 
   ret = sarg_get(&root, "host", &res);
   assert(ret == SARG_ERR_SUCCESS);
@@ -125,7 +152,7 @@ int main(int argc, const char **argv)
   mpd.port = 6600;
   mpd.conn = NULL;
 
-  mg_log_set("3");
+  mg_log_set(verbose);
   mg_mgr_init(&mgr);  // Initialise event manager
   LOG(LL_INFO, ("Starting web server on port %s", s_listen_on));
 #ifdef USE_DYNAMIC_WEB_PAGE

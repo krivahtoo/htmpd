@@ -107,6 +107,8 @@ void mpd_send_state(struct mg_connection *c) {
       json_object_set_number(song, "duration", mpd_song_get_duration(curr_song));
       json_object_set_number(song, "id", mpd_song_get_id(curr_song));
       json_object_set_number(song, "pos", mpd_song_get_pos(curr_song));
+      json_object_set_string(song, "uri", mpd_song_get_uri(curr_song));
+      json_object_set_string(song, "year", mpd_song_get_tag (curr_song, MPD_TAG_DATE, 0));
     }
   }
   json_object_set_string(obj, "type", "status");
@@ -195,9 +197,9 @@ void mpd_poll(struct mg_mgr *mgr) {
         if (!c->is_websocket || c == NULL) {
           continue;
         }
-        mpd_send_queue(c);
+        // mpd_send_queue(c);
         mpd_send_state(c);
-        mpd_send_output(c);
+        // mpd_send_output(c);
         break;
       case MPD_FAILURE:
         LOG(LL_ERROR, ("MPD connection failed"));
