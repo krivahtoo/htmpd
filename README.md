@@ -25,6 +25,6 @@ Please create an issue :)
 - [ ] Queue management
 - [ ] Playlist management
 - [ ] Advanced search
-- [ ] Embedded albumart
+- [x] Embedded albumart
 - [ ] MPD http stream
 - [ ] And more...
