@@ -7,6 +7,7 @@
     id:6,
     pos:1,
     year: '2000',
+    uri: ''
   }
   import { secondsToString } from './../utils.js'
   import { status } from './../stores.js'
@@ -28,7 +29,8 @@
       <div class="w-10 h-10 flex-shrink-0 mr-2 sm:mr-3">
         <img
           class="rounded-full { (song.id == currentStatus.current) ? 'bg-blue-200' : '' }"
-          src="{song.albumArt || albumArt}"
+          src="{ song.uri || albumArt }"
+          onerror="this.src='/logo.svg'"
           width="40" height="40" alt="{song.title}">
       </div>
       <div class="flex-grow-0 mr-2 sm:mr-3 overflow-hidden">

@@ -18,9 +18,9 @@
 
     // Connection opened
     ws.addEventListener('open', function (event) {
-      // ws.send(JSON.stringify({
-      //   cmd_id: getCommand('queue') || 0
-      // }))
+      ws.send(JSON.stringify({
+        cmd_id: getCommand('queue') || 0
+      }))
       connected = true
     })
     ws.addEventListener('message', function (event) {

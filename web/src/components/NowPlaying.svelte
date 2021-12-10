@@ -13,7 +13,7 @@
   const dispatch = createEventDispatcher()
 
   current.subscribe(v => {
-    if (v) song = v
+    if (v && song.id !== v.id) song = v
   })
   playing.subscribe(v => {
     isPlaying = v
@@ -29,8 +29,9 @@
         artist:"-",
         album:"-",
         duration:100,
-        id:1,
-        pos:1
+        id:-1,
+        pos:-1,
+        uri:""
       }
       currentTime = 0
     }
@@ -43,7 +44,8 @@
   <img
     in:fly="{{delay: 200, duration: 300, y: 100,}}"
     class="w-16 my-auto ml-6 rounded-full shadow-lg drop-shadow-lg overflow-hidden bg-blue-200"
-    src="/logo.svg" 
+    src="{ song.uri }"
+    onerror="this.src='/logo.svg'"
     alt="{ song.title }">
   <div class="ml-4 my-auto w-1/6">
     <h1
