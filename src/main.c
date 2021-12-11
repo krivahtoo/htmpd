@@ -18,6 +18,8 @@
 #include "mpd_client.h"
 #include "utils.h"
 
+#include "version.h"
+
 static sarg_opt opts[] = {
   {"h", "help", "show help text", BOOL, NULL},
   {"v", "verbose", "increase verbosity", BOOL, NULL},
@@ -32,13 +34,13 @@ static const char *s_web_root = "./dist";
 
 static bool run = true;
 
-void sig_handler(int sig_num) {
+static void sig_handler(int sig_num) {
   // (void) sig_num;
   printf("Caught signal %d\n\nShutting down.\n", sig_num);
   run = false;
 }
 
-void server_handler(struct mg_connection *c, int ev, void *ev_data, void *fn_data) {
+static void server_handler(struct mg_connection *c, int ev, void *ev_data, void *fn_data) {
   if (ev == MG_EV_OPEN) {
     // c->is_hexdumping = 1;
   } else if (ev == MG_EV_HTTP_MSG) {
@@ -60,7 +62,7 @@ void server_handler(struct mg_connection *c, int ev, void *ev_data, void *fn_dat
       char *image = malloc(strlen(tmp_img) + strlen(out));
       sprintf(image, tmp_img, out);
       struct mg_http_serve_opts opts = {.mime_types = "png=image/png",
-                                    .extra_headers = ""};
+                                    .extra_headers = "Cache-Control: max-age=2592000\r\n"};
       if (access(image, F_OK) == 0) {
         LOG(LL_INFO, ("Serving cached %s", image));
         mg_http_serve_file(c, hm, image, &opts);
@@ -107,7 +109,7 @@ int main(int argc, const char **argv)
 
   ret = sarg_parse(&root, argv, argc);
   if(ret != SARG_ERR_SUCCESS) {
-    printf("Parsing failed\n");
+    printf("Parsing args failed\n");
     sarg_help_print(&root);
     sarg_destroy(&root);
     return -1;
@@ -116,7 +118,7 @@ int main(int argc, const char **argv)
   // check if help flag was set
   ret = sarg_get(&root, "help", &res);
   if(res->bool_val) {
-    printf("htmpd v0.1.0 lightweight modern MPD web client\n\n");
+    printf("htmpd %s lightweight modern MPD web client\n\n", VERSION);
     sarg_help_print(&root);
     sarg_destroy(&root);
     return 0;

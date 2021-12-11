@@ -7,14 +7,18 @@ LIBS += $(shell pkg-config --libs libmpdclient)
 LIBS += $(shell pkg-config --libs gdk-pixbuf-2.0)
 LIBS += $(shell pkg-config --libs libavformat libavutil)
 FILES = $(shell find ./src -name "*.c")
+VERSION=$(shell git describe --long --tags)
 
 ASSETS=index.html favicon.png logo.svg build/bundle.js build/bundle.css
 
-htmpd: src/*.c assets
+htmpd: src/*.c assets version.h
 	$(CC) -o htmpd $(FILES)  $(CFLAGS) $(LIBS)
 
 assets: dist/index.html dist/build/bundle.js dist/build/bundle.css
 	cd dist && python ./../../tools/bin2c.py ./../../src/assets.c $(ASSETS)
+
+version.h: src/version.def.h
+	sed 's/v0.0.0/$(VERSION)/' src/version.def.h > src/version.h
 
 compile_commands:
 	compiledb make
