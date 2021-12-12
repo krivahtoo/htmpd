@@ -118,7 +118,7 @@ int main(int argc, const char **argv)
   // check if help flag was set
   ret = sarg_get(&root, "help", &res);
   if(res->bool_val) {
-    printf("htmpd %s lightweight modern MPD web client\n\n", VERSION);
+    printf("htmpd %s\nA lightweight modern MPD web client\n\n", VERSION);
     sarg_help_print(&root);
     sarg_destroy(&root);
     return 0;
@@ -128,13 +128,13 @@ int main(int argc, const char **argv)
   ret = sarg_get(&root, "v", &res);
   assert(ret == SARG_ERR_SUCCESS);
 
-  printf("verbosity set to %d\n", res->count);
   sprintf(verbose, "%d", res->count);
 
   ret = sarg_get(&root, "host", &res);
   assert(ret == SARG_ERR_SUCCESS);
   if(res->count > 0) {
-    printf("host: %s\n", res->str_val);
+    printf("Server listening on: %s\n", res->str_val);
+    s_listen_on = res->str_val;
   }
 
   ret = sarg_get(&root, "dir", &res);

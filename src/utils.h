@@ -20,4 +20,3 @@ GdkPixbuf * retrieve_artwork(const char * music_dir, const char * uri);
 
 #endif
 
-

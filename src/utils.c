@@ -1,12 +1,12 @@
 #include "utils.h"
 
-char * get_file_extension(const char *filename){
+static char * get_file_extension(const char *filename){
   char *dot = strrchr(filename, '.');
   if(!dot || dot == filename) return "";
   return dot + 1;
 }
 
-char * guess_audio_type(const char *filename){
+static char * guess_audio_type(const char *filename){
   char *ext = get_file_extension(filename);
   if(!strcmp(ext, "mp3")) return "audio/mpeg";
   if(!strcmp(ext, "ogg")) return "audio/ogg";

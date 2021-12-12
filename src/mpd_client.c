@@ -1,7 +1,5 @@
 #include "parson.h"
 #include "mpd_client.h"
-#include <mpd/audio_format.h>
-#include <mpd/song.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
