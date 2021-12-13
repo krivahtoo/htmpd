@@ -35,7 +35,7 @@
       <div class="w-10 h-10 flex-shrink-0 mr-2 sm:mr-3">
         <img
           class="rounded-full { (song.id == currentStatus.current) ? 'bg-blue-200' : '' }"
-          src="{ song.uri || albumArt }"
+          src={ song.uri || albumArt }
           onerror="this.src='/logo.svg'"
           width="40" height="40" alt="{song.title}">
       </div>

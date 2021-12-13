@@ -83,15 +83,15 @@
   <div class="min-h-screen flex flex-row bg-gray-100 overflow-hidden">
     <SideBar />
     <div class="flex flex-col flex-grow overflow-hidden">
-      <NavBar on:settings="{ () => showSettings = true }" />
+      <NavBar on:settings={ () => showSettings = true } />
       <Router routes={routes} />
     </div>
   </div>
   <NowPlaying
-    on:next="{ () => runCommand('next') }"
-    on:toggle="{ () => runCommand('pause') }"
-    on:prev="{ () => runCommand('prev') }"
-    on:seek="{ e => runCommand('seek', e.detail) }" />
+    on:next={ () => runCommand('next') }
+    on:toggle={ () => runCommand('pause') }
+    on:prev={ () => runCommand('prev') }
+    on:seek={ e => runCommand('seek', e.detail) } />
 </main>
 
 {#if showSettings}

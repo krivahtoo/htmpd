@@ -54,26 +54,26 @@
 </script>
 
 <div
-  in:fly="{{ duration: 200, delay: 0, y: 200 }}"
+  in:fly={{ duration: 200, delay: 0, y: 200 }}
   style="background: linear-gradient(to right bottom, { startColor }, { endColor } 90%); color: {textColor};"
   class="fixed flex backdrop-filter backdrop-blur-3xl bottom-2 w-11/12 h-20 z-50 ml-7 align-middle justify-items-center rounded-3xl bg-opacity-50 shadow-lg drop-shadow-2xl">
   <img
-    in:fly="{{delay: 200, duration: 300, y: 100,}}"
+    in:fly={{delay: 200, duration: 300, y: 100,}}
     class="w-16 my-auto ml-6 rounded-full shadow-lg drop-shadow-lg overflow-hidden bg-blue-200"
-    src="{ song.uri }"
+    src={ song.uri }
     onerror="this.src='/logo.svg'"
     on:load={getColor}
-    alt="{ song.title }">
+    alt={ song.title }>
   <div class="ml-4 my-auto w-1/6">
     <h1
-      in:fade="{{delay: 250, duration: 300}}"
+      in:fade={{delay: 250, duration: 300}}
       class="mb-1 text-xl font-bold">{ (song.title.length > 25) ? song.title.substr(0, 24) + '...' : song.title }</h1>
     <h2
-      in:fade="{{delay: 500, duration: 300}}"
+      in:fade={{delay: 500, duration: 300}}
       class="text-xs opacity-70">{ (song.artist.length > 25) ? song.artist.substr(0, 24) + '...' : song.artist }</h2>
   </div>
   <div class="flex ml-4 my-auto">
-    <button class="rounded-full hover:bg-blue-300 focus:outline-none" on:click="{ () => dispatch('prev') }">
+    <button class="rounded-full hover:bg-blue-300 focus:outline-none" on:click={ () => dispatch('prev') }>
       <svg class="w-4 h-4 hover:stroke-current" viewBox="0 0 24 24" fill="none" stroke="{ textColor }" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polygon points="19 20 9 12 19 4 19 20"></polygon>
         <line x1="5" y1="19" x2="5" y2="5"></line>
@@ -82,18 +82,18 @@
     <button
       style="border:2px solid { textColor };"
       class="rounded-full w-10 h-10 flex items-center justify-center pl-0.5 mx-4 hover:bg-blue-300 focus:outline-none"
-      on:click="{ () => dispatch('toggle') }">
-      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="{ textColor }" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      on:click={ () => dispatch('toggle') }>
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke={ textColor } stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         {#if isPlaying}
-          <line in:fade="{{ duration: 200 }}"  x1="5" y1="19" x2="5" y2="5"></line>
-          <line in:fade="{{ duration: 200 }}" x1="17" y1="5" x2="17" y2="19"></line>
+          <line in:fade={{ duration: 200 }}  x1="5" y1="19" x2="5" y2="5"></line>
+          <line in:fade={{ duration: 200 }} x1="17" y1="5" x2="17" y2="19"></line>
         {:else}
-          <polygon in:fade="{{ duration: 200 }}" points="5 3 19 12 5 21 5 3"></polygon>
+          <polygon in:fade={{ duration: 200 }} points="5 3 19 12 5 21 5 3"></polygon>
         {/if}
       </svg>
     </button>
-    <button class="rounded-full hover:bg-blue-300 focus:outline-none" on:click="{ () => dispatch('next') }">
-      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="{ textColor }" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <button class="rounded-full hover:bg-blue-300 focus:outline-none" on:click={ () => dispatch('next') }>
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke={ textColor } stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line>
       </svg>
     </button>
@@ -101,8 +101,8 @@
   <div class="relative w-full sm:w-1/2 md:w-7/12 lg:w-4/6 ml-5 my-auto">
     <input
       class="rounded-lg overflow-hidden appearance-none bg-blue-300 h-3 w-full"
-      type="range" min="0" max="{ song.duration }" step="1" bind:value={currentTime}
-      on:change="{ () => dispatch('seek', { id: song.id, pos: currentTime }) }" />
+      type="range" min="0" max={ song.duration } step="1" bind:value={currentTime}
+      on:change={ () => dispatch('seek', { id: song.id, pos: currentTime }) } />
   </div>
   <div class="flex justify-end w-full sm:w-auto pt-1 sm:pt-0 my-auto">
     <span class="text-xs uppercase font-medium pl-2">
