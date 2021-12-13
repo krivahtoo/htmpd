@@ -46,17 +46,16 @@
     const colorThief = new ColorThief()
     const color = colorThief.getColor(e.target)
     startColor = `rgb(${color[0]}, ${color[1]}, ${color[2]}, 0.5)`
-    // textColor = `rgb(${255 - color[0]}, ${255-color[1]}, ${255-color[2]})`
-    const [r, g, b] = colorThief.getPalette(e.target, 5)[1]
+    const [r, g, b] = colorThief.getPalette(e.target, 5)[Math.floor(Math.random() * 4)+1]
     endColor = `rgb(${r}, ${g}, ${b}, 0.5)`
-    textColor = (color[0] * 0.299 + color[1] * 0.587 + color[2] * 0.114) > 186 ? '#000000' : '#FFFFFF'
+    textColor = ((color[0]+r)/2 * 0.299 + (color[1]+g)/2 * 0.587 + (color[2]+b)/2 * 0.114) > 150 ? '#000000' : '#FFFFFF'
   }
 </script>
 
 <div
   in:fly={{ duration: 200, delay: 0, y: 200 }}
   style="background: linear-gradient(to right bottom, { startColor }, { endColor } 90%); color: {textColor};"
-  class="fixed flex backdrop-filter backdrop-blur-3xl bottom-2 w-11/12 h-20 z-50 ml-7 align-middle justify-items-center rounded-3xl bg-opacity-50 shadow-lg drop-shadow-2xl">
+  class="fixed flex backdrop-filter backdrop-blur-lg bottom-2 w-11/12 h-20 z-50 ml-7 transition-colors align-middle justify-items-center rounded-3xl bg-opacity-50 shadow-lg drop-shadow-2xl">
   <img
     in:fly={{delay: 200, duration: 300, y: 100,}}
     class="w-16 my-auto ml-6 rounded-full shadow-lg drop-shadow-lg overflow-hidden bg-blue-200"

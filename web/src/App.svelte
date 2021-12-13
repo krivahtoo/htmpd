@@ -16,12 +16,15 @@
   let showSettings = false
 
   onMount(() => {
-    ws = new WebSocket("ws://localhost:8000/ws");
+    ws = new WebSocket(`ws://${location.host}/ws`);
 
     // Connection opened
-    ws.addEventListener('open', function (event) {
+    ws.addEventListener('open', function () {
       ws.send(JSON.stringify({
         cmd_id: getCommand('queue') || 0
+      }))
+      ws.send(JSON.stringify({
+        cmd_id: getCommand('outputs')
       }))
       connected = true
     })
@@ -37,13 +40,13 @@
           break
         case 'status':
           current.set(data.song)
-          // 1 = stoped 2 = playing, 3 = paused
+          // 0 = unknown 1 = stoped 2 = playing, 3 = paused
           playing.set(data.state === 2)
           status.set(data)
           break
       }
     })
-    ws.addEventListener('close', function (event) {
+    ws.addEventListener('close', function () {
       connected = false
     })
     document.addEventListener('play', function (e) {
