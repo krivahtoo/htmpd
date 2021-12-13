@@ -2,6 +2,7 @@
   import { createEventDispatcher } from 'svelte';
   import { fly, fade } from 'svelte/transition'
   // import { elasticOut, expoOut } from 'svelte/easing'
+  import ColorThief from 'colorthief'
   
   import { current, playing, status } from './../stores.js'
   import { secondsToString } from './../utils.js'
@@ -9,6 +10,10 @@
   let isPlaying = false
   let currentTime = 0
   let song = {}
+
+  let startColor = 'rgba(0, 20, 255, 0.5)'
+  let endColor = 'rgba(255, 20, 255, 0.5)'
+  let textColor = 'rgba(255, 255, 255, 0.5)'
 
   const dispatch = createEventDispatcher()
 
@@ -36,36 +41,49 @@
       currentTime = 0
     }
   })
+
+  function getColor(e) {
+    const colorThief = new ColorThief()
+    const color = colorThief.getColor(e.target)
+    startColor = `rgb(${color[0]}, ${color[1]}, ${color[2]}, 0.5)`
+    // textColor = `rgb(${255 - color[0]}, ${255-color[1]}, ${255-color[2]})`
+    const [r, g, b] = colorThief.getPalette(e.target, 5)[1]
+    endColor = `rgb(${r}, ${g}, ${b}, 0.5)`
+    textColor = (color[0] * 0.299 + color[1] * 0.587 + color[2] * 0.114) > 186 ? '#000000' : '#FFFFFF'
+  }
 </script>
 
 <div
   in:fly="{{ duration: 200, delay: 0, y: 200 }}"
-  class="fixed flex backdrop-filter backdrop-blur-3xl bottom-2 w-11/12 h-20 z-50 ml-7 align-middle justify-items-center rounded-3xl bg-blue-100 bg-opacity-50 shadow-lg drop-shadow-2xl">
+  style="background: linear-gradient(to right bottom, { startColor }, { endColor } 90%); color: {textColor};"
+  class="fixed flex backdrop-filter backdrop-blur-3xl bottom-2 w-11/12 h-20 z-50 ml-7 align-middle justify-items-center rounded-3xl bg-opacity-50 shadow-lg drop-shadow-2xl">
   <img
     in:fly="{{delay: 200, duration: 300, y: 100,}}"
     class="w-16 my-auto ml-6 rounded-full shadow-lg drop-shadow-lg overflow-hidden bg-blue-200"
     src="{ song.uri }"
     onerror="this.src='/logo.svg'"
+    on:load={getColor}
     alt="{ song.title }">
   <div class="ml-4 my-auto w-1/6">
     <h1
       in:fade="{{delay: 250, duration: 300}}"
-      class="mb-1 text-xl font-bold text-black">{ (song.title.length > 25) ? song.title.substr(0, 24) + '...' : song.title }</h1>
+      class="mb-1 text-xl font-bold">{ (song.title.length > 25) ? song.title.substr(0, 24) + '...' : song.title }</h1>
     <h2
       in:fade="{{delay: 500, duration: 300}}"
-      class="text-xs text-gray-400">{ (song.artist.length > 25) ? song.artist.substr(0, 24) + '...' : song.artist }</h2>
+      class="text-xs opacity-70">{ (song.artist.length > 25) ? song.artist.substr(0, 24) + '...' : song.artist }</h2>
   </div>
   <div class="flex ml-4 my-auto">
     <button class="rounded-full hover:bg-blue-300 focus:outline-none" on:click="{ () => dispatch('prev') }">
-      <svg class="w-4 h-4 hover:stroke-current" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg class="w-4 h-4 hover:stroke-current" viewBox="0 0 24 24" fill="none" stroke="{ textColor }" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polygon points="19 20 9 12 19 4 19 20"></polygon>
         <line x1="5" y1="19" x2="5" y2="5"></line>
       </svg>
     </button>
     <button
-      class="rounded-full w-10 h-10 flex items-center justify-center pl-0.5 mx-4 ring-1 ring-black hover:bg-blue-300 focus:outline-none"
+      style="border:2px solid { textColor };"
+      class="rounded-full w-10 h-10 flex items-center justify-center pl-0.5 mx-4 hover:bg-blue-300 focus:outline-none"
       on:click="{ () => dispatch('toggle') }">
-      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="{ textColor }" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         {#if isPlaying}
           <line in:fade="{{ duration: 200 }}"  x1="5" y1="19" x2="5" y2="5"></line>
           <line in:fade="{{ duration: 200 }}" x1="17" y1="5" x2="17" y2="19"></line>
@@ -75,7 +93,7 @@
       </svg>
     </button>
     <button class="rounded-full hover:bg-blue-300 focus:outline-none" on:click="{ () => dispatch('next') }">
-      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="{ textColor }" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line>
       </svg>
     </button>
@@ -87,7 +105,7 @@
       on:change="{ () => dispatch('seek', { id: song.id, pos: currentTime }) }" />
   </div>
   <div class="flex justify-end w-full sm:w-auto pt-1 sm:pt-0 my-auto">
-    <span class="text-xs text-gray-700 uppercase font-medium pl-2">
+    <span class="text-xs uppercase font-medium pl-2">
       { secondsToString(currentTime) }/{ secondsToString(song.duration) }
     </span>
   </div>
