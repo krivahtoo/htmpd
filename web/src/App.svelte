@@ -4,6 +4,7 @@
 
   import NavBar from './components/NavBar.svelte'
   import SideBar from './components/SideBar.svelte'
+  import Settings from './components/Settings.svelte'
   import NowPlaying from './components/NowPlaying.svelte'
 
   import routes from './routes'
@@ -12,6 +13,7 @@
   
   let ws
   let connected = false
+  let showSettings = false
 
   onMount(() => {
     ws = new WebSocket("ws://localhost:8000/ws");
@@ -44,6 +46,11 @@
     ws.addEventListener('close', function (event) {
       connected = false
     })
+    document.addEventListener('play', function (e) {
+      if (connected) {
+        runCommand('play_track', { id: e.detail })
+      }
+    })
   })
 
   const runCommand = (cmd, args = {}) => {
@@ -55,9 +62,9 @@
     }
   }
   const handleKeydown = (e) => {
-    // if (e.key === 'Enter') {
-    //   runCommand('play')
-    // }
+    if (e.key === 'Enter') {
+      runCommand('play')
+    }
     if (e.key === ' ') {
       runCommand('pause')
     }
@@ -76,7 +83,7 @@
   <div class="min-h-screen flex flex-row bg-gray-100 overflow-hidden">
     <SideBar />
     <div class="flex flex-col flex-grow overflow-hidden">
-      <NavBar />
+      <NavBar on:settings="{ () => showSettings = true }" />
       <Router routes={routes} />
     </div>
   </div>
@@ -86,4 +93,10 @@
     on:prev="{ () => runCommand('prev') }"
     on:seek="{ e => runCommand('seek', e.detail) }" />
 </main>
+
+{#if showSettings}
+  <Settings
+    on:close={ () => showSettings = false }
+    on:toggle={ e => runCommand(`toggle_${e.detail[0]}`, e.detail[1]) }/>
+{/if}
 

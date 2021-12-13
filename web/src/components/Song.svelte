@@ -18,11 +18,17 @@
   status.subscribe(status => {
     currentStatus = status
   })
+
+  function play() {
+    let event = new CustomEvent('play', { detail: song.id })
+    document.dispatchEvent(event)
+  }
 </script>
 
 <tr 
   class="cursor-pointer hover:bg-gray-200 { (song.id == currentStatus.current) ? 'text-green-500' : '' }"
-  title="Play { song.title }">
+  title="Play { song.title }"
+  on:click="{play}">
   <td class="p-1">{ song.id }</td>
   <td class="p-2 whitespace-nowrap w-1/3 overflow-hidden">
     <div class="flex flex-nowrap items-center">
