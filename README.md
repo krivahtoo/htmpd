@@ -39,7 +39,7 @@ Feel free to open a pull request!
 Please create an issue :)
 
 ## Copyright
-[MIT License](https://opensource.org/licenses/MIT)
+[GPL 3.0](https://opensource.org/licenses/GPL-3.0)
 
 ## TODOs
 - [x] Control mpd functions (play, pause, etc.)
