@@ -69,7 +69,7 @@
   out:fade={{ duration: 100 }}
   class="fixed top-0 left-0 w-screen h-screen z-40 bg-gray-900 opacity-75 backdrop-filter backdrop-blur-2xl"></div>
 
-<div class="absolute top-1/2 left-1/2 w-10/12 -translate-x-1/2 -translate-y-1/2 z-50 p-1 rounded-3xl bg-gray-100 flex flex-col overflow-auto"
+<div class="absolute top-1/2 left-1/2 w-full md:w-10/12 h-full md:h-auto -translate-x-1/2 -translate-y-1/2 z-50 p-1 md:rounded-3xl bg-gray-100 flex flex-col overflow-auto"
   role="dialog" aria-modal="true" in:scale={{ duration: 100 }} out:scale={{ duration: 100 }} bind:this={modal}>
   <div class="flex flex-col items-start p-4">
     <div class="flex items-center w-full">

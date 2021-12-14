@@ -2,6 +2,8 @@ import { writable } from 'svelte/store'
 
 export const queue = writable([])
 
+export const browse = writable({})
+
 export const current = writable({
   title: "--",
   artist:"-",

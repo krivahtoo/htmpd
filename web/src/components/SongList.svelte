@@ -2,7 +2,7 @@
   export let type = 'queue'
 
   import { onMount } from 'svelte'
-  import { totalTime, queue } from './../stores.js'
+  import { totalTime, queue, browse } from './../stores.js'
 
   import Song from './Song.svelte'
 
@@ -24,7 +24,11 @@
         })
         break
       case 'browse':
-        songs = []
+        browse.subscribe(b => {
+          if (b && b.files) {
+            songs = b.files
+          }
+        })
         time = 0
         break
       case 'playlist':
@@ -61,10 +65,11 @@
         </thead>
         <tbody class="text-sm divide-y divide-gray-100">
           {#each songs as song}
-            <Song {song} />
+            <Song {song} {type} />
           {/each}
         </tbody>
       </table>
     </div>
   </div>
 </div>
+

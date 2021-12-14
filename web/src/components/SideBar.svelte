@@ -2,7 +2,7 @@
   import { queue } from './../stores.js'
 </script>
 
-<div class="flex flex-col w-1/5 bg-white rounded-r-3xl overflow-hidden">
+<div class="hidden md:flex flex-col w-1/5 bg-white rounded-r-3xl overflow-hidden">
   <div class="flex items-center justify-center h-20 shadow-md">
     <h1 class="text-3xl uppercase text-indigo-500">htmpd</h1>
   </div>

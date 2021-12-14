@@ -150,6 +150,60 @@ send_outputs:
   json_value_free(data);
 }
 
+void mpd_send_browse(struct mg_connection *c, const char *uri) {
+  JSON_Value *data = json_value_init_object();
+  JSON_Object *obj = json_value_get_object(data);
+  JSON_Value *dirs_val = json_value_init_array();
+  JSON_Array *dirs = json_value_get_array(dirs_val);
+  JSON_Value *files_val = json_value_init_array();
+  JSON_Array *files = json_value_get_array(files_val);
+  JSON_Value *playlists_val = json_value_init_array();
+  JSON_Array *playlists = json_value_get_array(playlists_val);
+
+  if(!mpd_send_list_meta(mpd.conn, uri)) {
+    json_object_set_string(obj, "type", "error");
+    json_object_set_string(obj, "error", "Could not send directory list");
+    goto send_browse;
+  }
+  struct mpd_entity *entity;
+  while((entity = mpd_recv_entity(mpd.conn)) != NULL) {
+    if(mpd_entity_get_type(entity) == MPD_ENTITY_TYPE_DIRECTORY) {
+      JSON_Value *dir_val = json_value_init_object();
+      JSON_Object *dir = json_value_get_object(dir_val);
+      json_object_set_string(dir, "name", mpd_directory_get_path(mpd_entity_get_directory(entity)));
+      json_array_append_value(dirs, dir_val);
+    } else if(mpd_entity_get_type(entity) == MPD_ENTITY_TYPE_SONG) {
+      JSON_Value *file_val = json_value_init_object();
+      JSON_Object *file = json_value_get_object(file_val);
+      json_object_set_string(file, "title", get_title(mpd_entity_get_song(entity)));
+      json_object_set_string(file, "artist", mpd_song_get_tag(mpd_entity_get_song(entity), MPD_TAG_ARTIST, 0));
+      json_object_set_string(file, "album", mpd_song_get_tag(mpd_entity_get_song(entity), MPD_TAG_ALBUM, 0));
+      json_object_set_number(file, "duration", mpd_song_get_duration(mpd_entity_get_song(entity)));
+      json_object_set_number(file, "id", mpd_song_get_id(mpd_entity_get_song(entity)));
+      json_object_set_number(file, "pos", mpd_song_get_pos(mpd_entity_get_song(entity)));
+      json_object_set_string(file, "uri", mpd_song_get_uri(mpd_entity_get_song(entity)));
+      json_object_set_string(file, "year", mpd_song_get_tag (mpd_entity_get_song(entity), MPD_TAG_DATE, 0));
+      json_array_append_value(files, file_val);
+    } else if(mpd_entity_get_type(entity) == MPD_ENTITY_TYPE_PLAYLIST) {
+      JSON_Value *playlist_val = json_value_init_object();
+      JSON_Object *playlist = json_value_get_object(playlist_val);
+      json_object_set_string(playlist, "name", mpd_playlist_get_path(mpd_entity_get_playlist(entity)));
+      json_array_append_value(playlists, playlist_val);
+    }
+    mpd_entity_free(entity);
+  }
+  json_object_set_string(obj, "type", "browse");
+
+send_browse:
+  json_object_set_value(obj, "dirs", dirs_val);
+  json_object_set_value(obj, "files", files_val);
+  json_object_set_value(obj, "playlists", playlists_val);
+  char *json_str = json_serialize_to_string(data);
+
+  mg_ws_send(c, json_str, strlen(json_str), WEBSOCKET_OP_TEXT);
+  json_value_free(data);
+}
+
 void mpd_poll(struct mg_mgr *mgr) {
   struct mg_connection *c, *tmp;
   for(c = mgr->conns; c != NULL; c = tmp) {
@@ -306,6 +360,9 @@ void mpd_callback(struct mg_connection *c, struct mg_ws_message *wm) {
       break;
     case MPD_GET_QUEUE:
       mpd_send_queue(c);
+      break;
+    case MPD_GET_BROWSE:
+      mpd_send_browse(c, json_object_get_string(obj, "path"));
       break;
     case MPD_SAVE_QUEUE:
       mpd_run_save(mpd.conn, json_object_get_string(obj, "name"));
