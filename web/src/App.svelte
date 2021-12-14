@@ -2,6 +2,7 @@
   import Router from 'svelte-spa-router'
   import { onMount } from 'svelte'
 
+  import Toast from './components/Toast.svelte'
   import NavBar from './components/NavBar.svelte'
   import SideBar from './components/SideBar.svelte'
   import Settings from './components/Settings.svelte'
@@ -9,7 +10,7 @@
 
   import routes from './routes'
   import { getCommand } from './utils.js'
-  import { totalTime, queue, outputs, current, playing, status, browse } from './stores.js'
+  import { totalTime, queue, outputs, current, playing, status, browse, messages } from './stores.js'
   
   let ws
   let connected = false
@@ -30,6 +31,12 @@
         cmd_id: getCommand('browse')
       }))
       connected = true
+      messages.update(msg => msg.concat({
+        time: Date.now(),
+        duration: 1000,
+        type: 'info',
+        text: 'Connected to server'
+      }))
     })
     ws.addEventListener('message', function (event) {
       let data = JSON.parse(event.data)
@@ -50,10 +57,32 @@
           playing.set(data.state === 2)
           status.set(data)
           break
+        case 'error':
+          messages.update(m => m.concat({
+            time: Date.now(),
+            duration: 3000,
+            type: 'error',
+            text: `Error: ${data.error}`
+          }))
+
       }
     })
     ws.addEventListener('close', function () {
       connected = false
+      messages.update(m => m.concat({
+        time: Date.now(),
+        duration: 3000,
+        type: 'error',
+        text: 'Disconnected from server'
+      }))
+    })
+    ws.addEventListener('error', function (event) {
+      messages.update(m => m.concat({
+        time: Date.now(),
+        duration: 3000,
+        type: 'error',
+        text: `Error: ${event.message}`
+      }))
     })
     document.addEventListener('play', function (e) {
       if (connected) {
@@ -74,6 +103,12 @@
 
   const runCommand = (cmd, args = {}) => {
     if (connected) {
+      messages.update(m => m.concat({
+        time: Date.now(),
+        duration: 1000,
+        type: 'info',
+        text: `Sending command: ${cmd}`
+      }))
       ws.send(JSON.stringify({
         cmd_id: getCommand(cmd) || 0,
         ...args
@@ -97,6 +132,8 @@
 </script>
 
 <svelte:window on:keydown={handleKeydown}/>
+
+<Toast/>
 
 <main class="md:mx-1 overflow-hidden" >
   <div class="min-h-screen flex flex-row bg-gray-100 overflow-hidden">

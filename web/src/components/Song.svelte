@@ -43,7 +43,15 @@
   class="cursor-pointer hover:bg-gray-200 { (song.id == currentStatus.current) ? 'text-green-500' : '' }"
   title="Play { song.title }"
   on:click="{play}">
-  <td class="p-1">{ song.id }</td>
+  {#if song.id == currentStatus.current && currentStatus.state == 2}
+    <div class="icon relative left-1 top-5 flex justify-between">
+      <span class="bg-green-500"></span>
+      <span class="bg-green-500"></span>
+      <span class="bg-green-500"></span>
+    </div>
+  {:else}
+    <td class="p-1">{ song.id }</td>
+  {/if}
   <td class="p-2 whitespace-nowrap w-1/3 overflow-hidden">
     <div class="flex flex-nowrap items-center">
       <div class="w-10 h-10 flex-shrink-0 mr-2 sm:mr-3">
@@ -70,3 +78,40 @@
   </td>
 </tr>
 
+<style>
+  .icon {
+    width: 13px;
+    height: 13px;
+  }
+  .icon span {
+    width: 3px;
+    height: 100%;
+    border-radius: 3px;
+    animation: bounce 2.2s ease infinite alternate;
+    content: '';
+  }
+  .icon span:nth-of-type(2) {
+    animation-delay: -2.2s; /* Start at the end of animation */
+  }
+
+  .icon span:nth-of-type(3) {
+    animation-delay: -3.7s; /* Start mid-way of return of animation */
+  }
+  @keyframes bounce {
+    10% {
+      transform: scaleY(0.3); /* start by scaling to 30% */
+    }
+    30% {
+      transform: scaleY(1); /* scale up to 100% */
+    }
+    60% {
+      transform: scaleY(0.5); /* scale down to 50% */
+    }
+    80% {
+      transform: scaleY(0.75); /* scale up to 75% */
+    }
+    100% {
+      transform: scaleY(0.6); /* scale down to 60% */
+    }
+  }
+</style>

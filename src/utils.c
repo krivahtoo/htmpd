@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-3.0-only */
+
 #include "utils.h"
 
 static char * get_file_extension(const char *filename){

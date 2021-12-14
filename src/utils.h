@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-3.0-only */
+
 #ifndef __UTILS_H__
 #define __UTILS_H__
 

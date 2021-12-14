@@ -3,3 +3,7 @@
 htmpd
 .cache
 
+compile_commands.json
+gmon.out
+src/assets.c
+src/version.h
