@@ -1,4 +1,5 @@
 <script>
+  export let type = 'queue'
   export let song = {
     title: "--",
     artist:"-",
@@ -20,8 +21,21 @@
   })
 
   function play() {
-    let event = new CustomEvent('play', { detail: song.id })
-    document.dispatchEvent(event)
+    let event
+    switch (type) {
+      case 'queue':
+        event = new CustomEvent('play', { detail: song.id })
+        document.dispatchEvent(event)
+        break
+      case 'playlist':
+        event = new CustomEvent('play', { detail: song.id })
+        document.dispatchEvent(event)
+        break
+      case 'browse':
+        event = new CustomEvent('add_track', { detail: song.uri })
+        document.dispatchEvent(event)
+        break
+    }
   }
 </script>
 

@@ -9,7 +9,7 @@
 
   import routes from './routes'
   import { getCommand } from './utils.js'
-  import { totalTime, queue, outputs, current, playing, status } from './stores.js'
+  import { totalTime, queue, outputs, current, playing, status, browse } from './stores.js'
   
   let ws
   let connected = false
@@ -26,6 +26,9 @@
       ws.send(JSON.stringify({
         cmd_id: getCommand('outputs')
       }))
+      ws.send(JSON.stringify({
+        cmd_id: getCommand('browse')
+      }))
       connected = true
     })
     ws.addEventListener('message', function (event) {
@@ -34,6 +37,9 @@
         case 'queue':
           queue.set(data.queue)
           totalTime.set(data.totalTime)
+          break
+        case 'browse':
+          browse.set(data)
           break
         case 'outputs':
           outputs.set(data.outputs)
@@ -52,6 +58,16 @@
     document.addEventListener('play', function (e) {
       if (connected) {
         runCommand('play_track', { id: e.detail })
+      }
+    })
+    document.addEventListener('add_track', function (e) {
+      if (connected) {
+        runCommand('add_track', { path: e.detail })
+      }
+    })
+    document.addEventListener('queue', function () {
+      if (connected) {
+        runCommand('queue')
       }
     })
   })
@@ -82,7 +98,7 @@
 
 <svelte:window on:keydown={handleKeydown}/>
 
-<main class="mx-1 overflow-hidden" >
+<main class="md:mx-1 overflow-hidden" >
   <div class="min-h-screen flex flex-row bg-gray-100 overflow-hidden">
     <SideBar />
     <div class="flex flex-col flex-grow overflow-hidden">
