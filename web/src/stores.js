@@ -21,3 +21,12 @@ export const outputs = writable([])
 
 export const status = writable({})
 
+export const messages = writable([
+  {
+    time: Date.now(),
+    duration: 2000,
+    type:"info",
+    text:"Welcome to htmpd the web interface of the MPD server"
+  }
+])
+
