@@ -1,5 +1,5 @@
 <script>
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher, onMount } from 'svelte';
   import { fly, fade } from 'svelte/transition'
   // import { elasticOut, expoOut } from 'svelte/easing'
   import ColorThief from 'colorthief'
@@ -9,8 +9,16 @@
 
   let isPlaying = false
   let currentTime = 0
-  let song = {}
   let playerOpen = true
+  let song = {
+    title: "--",
+    artist:"-",
+    album:"-",
+    duration:100,
+    id:-1,
+    pos:-1,
+    uri:""
+  }
 
   let startColor = 'rgba(0, 20, 255, 0.5)'
   let endColor = 'rgba(255, 20, 255, 0.5)'
@@ -40,6 +48,13 @@
         uri:""
       }
       currentTime = 0
+      playerOpen = false
+    }
+  })
+
+  onMount(() => {
+    if (!isPlaying) {
+      playerOpen = false
     }
   })
 
@@ -55,14 +70,21 @@
   function toggle() {
     playerOpen = !playerOpen
   }
+  function handleKeydown(e) {
+    if (e.key === 'Escape') {
+      playerOpen = !playerOpen
+    }
+  }
 </script>
+
+<svelte:window on:keydown={handleKeydown}/>
 
 {#if playerOpen}
 <div
   in:fly={{ duration: 200, delay: 0, y: 200 }}
   out:fly={{ duration: 200, delay: 0, y: 200 }}
   style="background: linear-gradient(to right bottom, { startColor }, { endColor } 90%); color: {textColor};"
-  class="fixed flex flex-col items-center md:flex-row backdrop-filter backdrop-blur-lg bottom-0 md:bottom-2 w-screen md:w-11/12 h-full md:h-20 z-50 md:ml-7 transition-colors align-middle justify-items-center md:rounded-3xl opacity-100 md:bg-opacity-50 shadow-lg drop-shadow-2xl">
+  class="fixed flex flex-col items-center md:flex-row backdrop-filter backdrop-blur-lg bottom-0 md:bottom-2 w-screen md:w-11/12 h-full md:h-20 z-40 md:ml-7 transition-colors align-middle justify-items-center md:rounded-3xl opacity-100 md:bg-opacity-50 shadow-lg drop-shadow-2xl">
   <svg class="fixed left-3 top-3 w-10 h-10 md:hidden" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" on:click={toggle}>
     <path fill="currentColor" d="M192 448c-8.188 0-16.38-3.125-22.62-9.375l-160-160c-12.5-12.5-12.5-32.75 0-45.25l160-160c12.5-12.5 32.75-12.5 45.25 0s12.5 32.75 0 45.25L77.25 256l137.4 137.4c12.5 12.5 12.5 32.75 0 45.25C208.4 444.9 200.2 448 192 448z">
     </path>
@@ -135,17 +157,66 @@
   </div>
 </div>
 {:else}
-<div class="fixed bottom-5 right-5 w-10 h-10 rounded-full bg-indigo-500" on:click={toggle}>
+<div class="fixed bottom-5 right-5 w-10 h-10 rounded-full bg-indigo-100" on:click={toggle}>
   <img
     class="h-full rounded-full"
     src={ song.uri }
     onerror="this.src='/logo.svg'"
     on:load={getColor}
     alt={ song.title }>
+  {#if isPlaying}
+  <div class="icon relative left-3 bottom-7">
+    <span style="background-color: { textColor };"></span>
+    <span style="background-color: { textColor };"></span>
+    <span style="background-color: { textColor };"></span>
+  </div>
+  {/if}
 </div>
 {/if}
 
 <style>
+  .icon {
+    display: flex;
+    justify-content: space-between;
+    width: 13px;
+    height: 13px;
+  }
+  .icon span {
+    width: 3px;
+    height: 100%;
+    /* background-color: #6366f1; */
+    border-radius: 3px;
+    animation: bounce 2.2s ease infinite alternate;
+    content: '';
+  }
+  .icon span:nth-of-type(2) {
+    animation-delay: -2.2s; /* Start at the end of animation */
+  }
+
+  .icon span:nth-of-type(3) {
+    animation-delay: -3.7s; /* Start mid-way of return of animation */
+  }
+  @keyframes bounce {
+    10% {
+      transform: scaleY(0.3); /* start by scaling to 30% */
+    }
+
+    30% {
+      transform: scaleY(1); /* scale up to 100% */
+    }
+
+    60% {
+      transform: scaleY(0.5); /* scale down to 50% */
+    }
+
+    80% {
+      transform: scaleY(0.75); /* scale up to 75% */
+    }
+
+    100% {
+      transform: scaleY(0.6); /* scale down to 60% */
+    }
+  }
   @media screen and (-webkit-min-device-pixel-ratio: 0) {
     input[type="range"]::-webkit-slider-thumb {
       width: 15px;
