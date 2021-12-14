@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-3.0-only */
+
 #ifndef __SERVER_H__
 #define __SERVER_H__
 

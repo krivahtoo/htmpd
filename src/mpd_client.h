@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-3.0-only */
+
 #ifndef __MPD_CLIENT_H__
 #define __MPD_CLIENT_H__
 
