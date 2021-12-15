@@ -34,7 +34,8 @@ void mpd_send_queue(struct mg_connection *c) {
 
   if(!mpd_send_list_queue_meta(mpd.conn)) {
     json_object_set_string(obj, "type", "error");
-    json_object_set_string(obj, "error", "Could not send queue");
+    json_object_set_string(obj, "message", mpd_connection_get_error_message(mpd.conn));
+    mpd.conn_state = MPD_FAILURE;
     goto send_queue;
   }
   while((entity = mpd_recv_entity(mpd.conn)) != NULL) {
@@ -75,13 +76,15 @@ void mpd_send_state(struct mg_connection *c) {
 
   if(!mpd_send_status(mpd.conn)) {
   json_object_set_string(obj, "type", "error");
-    json_object_set_string(obj, "error", "Could not send status");
+    json_object_set_string(obj, "message", mpd_connection_get_error_message(mpd.conn));
+    mpd.conn_state = MPD_FAILURE;
     goto send_state;
   }
   struct mpd_status *status = mpd_recv_status(mpd.conn);
   if(status == NULL) {
     json_object_set_string(obj, "type", "error");
-    json_object_set_string(obj, "error", "Could not receive status");
+    json_object_set_string(obj, "message", mpd_connection_get_error_message(mpd.conn));
+    mpd.conn_state = MPD_FAILURE;
     goto send_state;
   }
   json_object_set_number(obj, "volume", mpd_status_get_volume(status));
@@ -129,7 +132,8 @@ void mpd_send_output(struct mg_connection *c) {
 
   if(!mpd_send_outputs(mpd.conn)) {
     json_object_set_string(obj, "type", "error");
-    json_object_set_string(obj, "error", "Could not send output list");
+    json_object_set_string(obj, "message", mpd_connection_get_error_message(mpd.conn));
+    mpd.conn_state = MPD_FAILURE;
     goto send_outputs;
   }
   struct mpd_output *output;
@@ -164,7 +168,8 @@ void mpd_send_browse(struct mg_connection *c, const char *uri) {
 
   if(!mpd_send_list_meta(mpd.conn, uri)) {
     json_object_set_string(obj, "type", "error");
-    json_object_set_string(obj, "error", "Could not send directory list");
+    json_object_set_string(obj, "message", "Could not send directory list");
+    mpd.conn_state = MPD_FAILURE;
     goto send_browse;
   }
   struct mpd_entity *entity;
@@ -212,6 +217,22 @@ void mpd_poll(struct mg_mgr *mgr) {
     tmp = c->next;
     if (mpd.conn == NULL) {
       mpd.conn_state = MPD_DISCONNECTED;
+    } else {
+      // Report errors
+      if (mpd_connection_get_error(mpd.conn) != MPD_ERROR_SUCCESS) {
+        LOG(LL_ERROR, ("MPD connection failed: %s", mpd_connection_get_error_message(mpd.conn)));
+        if (c->is_websocket) {
+          JSON_Value *data = json_value_init_object();
+          JSON_Object *obj = json_value_get_object(data);
+          json_object_set_string(obj, "type", "error");
+          json_object_set_string(obj, "message", mpd_connection_get_error_message(mpd.conn));
+          char *json_str = json_serialize_to_string(data);
+          mg_ws_send(c, json_str, strlen(json_str), WEBSOCKET_OP_TEXT);
+        }
+        if (!mpd_connection_clear_error(mpd.conn)) {
+          mpd.conn_state = MPD_FAILURE;
+        }
+      }
     }
     switch (mpd.conn_state) {
       case MPD_DISCONNECTED:
@@ -268,21 +289,6 @@ void mpd_poll(struct mg_mgr *mgr) {
         mpd.conn_state = MPD_DISCONNECTED;
         break;
     }
-    // Report errors
-    if (mpd_connection_get_error(mpd.conn) != MPD_ERROR_SUCCESS) {
-      LOG(LL_ERROR, ("MPD connection failed: %s", mpd_connection_get_error_message(mpd.conn)));
-      if (c->is_websocket) {
-        JSON_Value *data = json_value_init_object();
-        JSON_Object *obj = json_value_get_object(data);
-        json_object_set_string(obj, "type", "error");
-        json_object_set_string(obj, "error", mpd_connection_get_error_message(mpd.conn));
-        char *json_str = json_serialize_to_string(data);
-        mg_ws_send(c, json_str, strlen(json_str), WEBSOCKET_OP_TEXT);
-      }
-      if (!mpd_connection_clear_error(mpd.conn)) {
-        mpd.conn_state = MPD_FAILURE;
-      }
-    }
   }
 }
 
@@ -290,6 +296,15 @@ void mpd_callback(struct mg_connection *c, struct mg_ws_message *wm) {
   JSON_Value *data = json_parse_string(wm->data.ptr);
   JSON_Object *obj = json_value_get_object(data);
   enum mpd_cmds cmd_id = get_cmd_id(obj);
+  if (mpd.conn_state != MPD_CONNECTED) {
+    LOG(LL_ERROR, ("MPD is not connected"));
+    JSON_Value *data = json_value_init_object();
+    JSON_Object *obj = json_value_get_object(data);
+    json_object_set_string(obj, "type", "disconnected");
+    char *json_str = json_serialize_to_string(data);
+    mg_ws_send(c, json_str, strlen(json_str), WEBSOCKET_OP_TEXT);
+    return;
+  }
   switch (cmd_id) {
     case MPD_UPDATE_DB:
       if (mpd.conn_state == MPD_CONNECTED) {
@@ -308,7 +323,7 @@ void mpd_callback(struct mg_connection *c, struct mg_ws_message *wm) {
           JSON_Object *obj = json_value_get_object(data);
           json_object_set_string(obj, "type", "update");
           json_object_set_boolean(obj, "success", false);
-          json_object_set_string(obj, "error", mpd_connection_get_error_message(mpd.conn));
+          json_object_set_string(obj, "message", mpd_connection_get_error_message(mpd.conn));
           char *msg = json_serialize_to_string(data);
           mg_ws_send(c, msg, strlen(msg), WEBSOCKET_OP_TEXT);
           mpd.conn_state = MPD_FAILURE;
@@ -403,7 +418,7 @@ void mpd_callback(struct mg_connection *c, struct mg_ws_message *wm) {
       JSON_Value *data = json_value_init_object();
       JSON_Object *obj = json_value_get_object(data);
       json_object_set_string(obj, "type", "error");
-      json_object_set_string(obj, "error", "Unknown command");
+      json_object_set_string(obj, "message", "Unknown command");
       char *msg = json_serialize_to_string(data);
       mg_ws_send(c, msg, strlen(msg), WEBSOCKET_OP_TEXT);
       break;

@@ -62,9 +62,41 @@
             time: Date.now(),
             duration: 3000,
             type: 'error',
-            text: `Error: ${data.error}`
+            text: `Error: ${data.message}`
           }))
-
+          break
+        case 'connected':
+          messages.update(m => m.concat({
+            time: Date.now(),
+            duration: 3000,
+            type: 'info',
+            text: 'Connected to MPD server'
+          }))
+          break
+        case 'disconnected':
+          messages.update(m => m.concat({
+            time: Date.now(),
+            duration: 3000,
+            type: 'error',
+            text: 'Disconnected from MPD server'
+          }))
+          break
+        case 'update':
+          if (data.success) {
+            messages.update(m => m.concat({
+              time: Date.now(),
+              duration: 3000,
+              type: 'info',
+              text: 'Update successful'
+            }))
+          } else {
+            messages.update(m => m.concat({
+              time: Date.now(),
+              duration: 3000,
+              type: 'error',
+              text: `Update failed: ${data.message}`
+            }))
+          }
       }
     })
     ws.addEventListener('close', function () {
