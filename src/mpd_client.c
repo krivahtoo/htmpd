@@ -47,6 +47,7 @@ void send_queue(struct mg_connection *c) {
       json_object_set_string(songObj, "title", get_title(curr_song));
       json_object_set_string(songObj, "artist", mpd_song_get_tag(curr_song, MPD_TAG_ARTIST, 0));
       json_object_set_string(songObj, "album", mpd_song_get_tag(curr_song, MPD_TAG_ALBUM, 0));
+      json_object_set_string(songObj, "genre", mpd_song_get_tag(curr_song, MPD_TAG_GENRE, 0));
       json_object_set_string(songObj, "uri", mpd_song_get_uri(curr_song));
       json_object_set_number(songObj, "duration", mpd_song_get_duration(curr_song));
       json_object_set_number(songObj, "id", mpd_song_get_id(curr_song));
@@ -107,6 +108,7 @@ void send_status(struct mg_connection *c) {
       json_object_set_string(song, "title", get_title(curr_song));
       json_object_set_string(song, "artist", mpd_song_get_tag(curr_song, MPD_TAG_ARTIST, 0));
       json_object_set_string(song, "album", mpd_song_get_tag(curr_song, MPD_TAG_ALBUM, 0));
+      json_object_set_string(song, "genre", mpd_song_get_tag(curr_song, MPD_TAG_GENRE, 0));
       json_object_set_number(song, "duration", mpd_song_get_duration(curr_song));
       json_object_set_number(song, "id", mpd_song_get_id(curr_song));
       json_object_set_number(song, "pos", mpd_song_get_pos(curr_song));
@@ -211,6 +213,31 @@ send_browse:
   json_value_free(data);
 }
 
+void send_stats(struct mg_connection *c) {
+  JSON_Value *data = json_value_init_object();
+  JSON_Object *obj = json_value_get_object(data);
+  struct mpd_stats *stats = mpd_run_stats(mpd.conn);
+  if (stats != NULL) {
+    json_object_set_string(obj, "type", "stats");
+    json_object_set_number(obj, "artistsCount", mpd_stats_get_number_of_artists(stats));
+    json_object_set_number(obj, "songsCount", mpd_stats_get_number_of_songs(stats));
+    json_object_set_number(obj, "albumsCount", mpd_stats_get_number_of_albums(stats));
+    json_object_set_number(obj, "uptime", mpd_stats_get_uptime(stats));
+    json_object_set_number(obj, "playTime", mpd_stats_get_play_time(stats));
+    json_object_set_number(obj, "dbPlayTime", mpd_stats_get_db_play_time(stats));
+    json_object_set_number(obj, "dbUpdateTime", mpd_stats_get_db_update_time(stats));
+    mpd_stats_free(stats);
+  } else {
+    json_object_set_string(obj, "type", "error");
+    json_object_set_string(obj, "message", "Could not send stats");
+    mpd.conn_state = MPD_FAILURE;
+  }
+  char *json_str = json_serialize_to_string(data);
+
+  mg_ws_send(c, json_str, strlen(json_str), WEBSOCKET_OP_TEXT);
+  json_value_free(data);
+}
+
 void mpd_poll(struct mg_mgr *mgr) {
   struct mg_connection *c, *tmp;
   for(c = mgr->conns; c != NULL; c = tmp) {
@@ -275,6 +302,7 @@ void mpd_poll(struct mg_mgr *mgr) {
         // send_queue(c);
         send_status(c);
         send_output(c);
+        send_stats(c);
         break;
       case MPD_FAILURE:
         LOG(LL_ERROR, ("MPD connection failed"));
