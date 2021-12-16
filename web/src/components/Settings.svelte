@@ -2,7 +2,7 @@
   import { createEventDispatcher, onDestroy } from 'svelte'
   import { fade, scale } from 'svelte/transition'
 
-  import { status } from '../stores.js'
+  import { outputs, status } from '../stores.js'
 
   const dispatch = createEventDispatcher()
   const close = () => dispatch('close')
@@ -14,6 +14,7 @@
   let consume = false
   let crossfade = 0
   let tab = 0
+  let currentOutputs = []
 
   const handle_keydown = e => {
     if (e.key === 'Escape') {
@@ -45,6 +46,7 @@
     })
   }
 
+  outputs.subscribe(v => currentOutputs = v)
   status.subscribe(({ repeat: r, single: s, random: ra, crossfade: c, consume: cn }) => {
     repeat = r == 1
     single = s == 1
@@ -53,11 +55,25 @@
     consume = cn == 1
   })
   function set(cmd, val) {
-    if (cmd !== 'crossfade') {
-      dispatch('toggle', [cmd, { mode: val }])
-    } else {
-      dispatch('toggle', [cmd, { seconds: val }])
+    switch(cmd) {
+      case 'crossfade':
+        dispatch('toggle', [cmd, { seconds: val }])
+        break
+      case 'repeat':
+      case 'random':
+      case 'single':
+      case 'consume':
+        dispatch('toggle', [cmd, { mode: val }])
+        break
+      case 'output':
+        dispatch('toggle', [cmd, { id: val }])
+        break
     }
+    // if (cmd !== 'crossfade') {
+    //   dispatch('toggle', [cmd, { mode: val }])
+    // } else {
+    //   dispatch('toggle', [cmd, { seconds: val }])
+    // }
   }
 </script>
 
@@ -65,12 +81,12 @@
 
 <div
   on:click={close}
-  in:fade={{ duration: 100 }}
-  out:fade={{ duration: 100 }}
+  in:fade={{ duration: 200 }}
+  out:fade={{ duration: 200 }}
   class="fixed top-0 left-0 w-screen h-screen z-40 bg-gray-900 opacity-75 backdrop-filter backdrop-blur-2xl"></div>
 
 <div class="absolute top-1/2 left-1/2 w-full md:w-10/12 h-full md:h-auto -translate-x-1/2 -translate-y-1/2 z-50 p-1 md:rounded-3xl bg-gray-100 flex flex-col overflow-auto"
-  role="dialog" aria-modal="true" in:scale={{ duration: 100 }} out:scale={{ duration: 100 }} bind:this={modal}>
+  role="dialog" aria-modal="true" in:scale={{ duration: 200 }} out:scale={{ duration: 200 }} bind:this={modal}>
   <div class="flex flex-col items-start p-4">
     <div class="flex items-center w-full">
       <div class="text-gray-900 font-medium text-3xl">Settings</div>
@@ -143,7 +159,21 @@
     </div>
   </div>
 {:else if tab == 1}
-  General
+  <div class="flex flex-row justify-between w-full">
+    <div class="flex flex-col items-center w-full pl-4">
+      <h1 class="font-bold text-xl">Available outputs</h1>
+      {#each currentOutputs as out}
+        <label for={`out_${out.id}`} class="flex py-3 items-center cursor-pointer">
+          <div class="px-2">{ out.name }</div>
+          <div class="relative">
+            <input id={`out_${out.id}`} type="checkbox" class="hidden" checked={out.enabled == 1} on:change={() => set('output', out.id)} />
+            <div class="toggle-path bg-gray-200 w-9 h-5 rounded-full shadow-inner"></div>
+            <div class="toggle-circle absolute w-3.5 h-3.5 bg-white rounded-full shadow inset-y-0 left-0"></div>
+          </div>
+        </label>
+      {/each}
+    </div>
+  </div>
 {:else}
   Advanced
 {/if}

@@ -274,7 +274,7 @@ void mpd_poll(struct mg_mgr *mgr) {
         }
         // mpd_send_queue(c);
         mpd_send_state(c);
-        // mpd_send_output(c);
+        mpd_send_output(c);
         break;
       case MPD_FAILURE:
         LOG(LL_ERROR, ("MPD connection failed"));
@@ -359,6 +359,9 @@ void mpd_callback(struct mg_connection *c, struct mg_ws_message *wm) {
       break;
     case MPD_ADD_PLAYLIST:
       mpd_run_load(mpd.conn, json_object_get_string(obj, "name"));
+      break;
+    case MPD_TOGGLE_OUTPUT:
+      mpd_run_toggle_output(mpd.conn, json_object_get_number(obj, "id"));
       break;
     case MPD_TOGGLE_RANDOM:
       mpd_run_random(mpd.conn, json_object_get_boolean(obj, "mode"));
