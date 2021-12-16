@@ -13,6 +13,7 @@
   import { totalTime, queue, outputs, current, playing, status, browse, messages } from './stores.js'
   
   let ws
+  let currentSong = {}
   let connected = false
   let showSettings = false
 
@@ -52,6 +53,7 @@
           outputs.set(data.outputs)
           break
         case 'status':
+          currentSong = data.song
           current.set(data.song)
           // 0 = unknown 1 = stoped 2 = playing, 3 = paused
           playing.set(data.state === 2)
@@ -135,16 +137,20 @@
 
   const runCommand = (cmd, args = {}) => {
     if (connected) {
-      messages.update(m => m.concat({
-        time: Date.now(),
-        duration: 1000,
-        type: 'info',
-        text: `Sending command: ${cmd}`
-      }))
       ws.send(JSON.stringify({
         cmd_id: getCommand(cmd) || 0,
         ...args
       }))
+      setTimeout(() => {
+        if (cmd === 'prev' || cmd === 'next') {
+          messages.update(m => m.concat({
+            time: Date.now(),
+            duration: 1000,
+            type: 'info',
+            text: `Playing: ${currentSong.title}`
+          }))
+        }
+      }, 1000)
     }
   }
   const handleKeydown = (e) => {

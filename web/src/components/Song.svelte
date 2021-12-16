@@ -41,7 +41,7 @@
 
 <tr 
   class="cursor-pointer hover:bg-gray-200 { (song.id == currentStatus.current) ? 'text-green-500' : '' }"
-  title="Play { song.title }"
+  title={ (type == 'queue') ? `Play ${song.title}` : 'Add to queue' }
   on:click="{play}">
   {#if song.id == currentStatus.current && currentStatus.state == 2}
     <div class="icon relative left-1 top-5 flex justify-between">
@@ -49,6 +49,8 @@
       <span class="bg-green-500"></span>
       <span class="bg-green-500"></span>
     </div>
+  {:else if type == 'browse'}
+    <td class="p-1">+</td>
   {:else}
     <td class="p-1">{ song.id }</td>
   {/if}
