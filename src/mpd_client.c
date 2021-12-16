@@ -24,7 +24,7 @@ char *get_title(struct mpd_song const *song) {
   return str;
 }
 
-void mpd_send_queue(struct mg_connection *c) {
+void send_queue(struct mg_connection *c) {
   struct mpd_entity *entity;
   unsigned long totalTime = 0;
   JSON_Value *data = json_value_init_object();
@@ -68,7 +68,7 @@ send_queue:
   json_value_free(data);
 }
 
-void mpd_send_state(struct mg_connection *c) {
+void send_status(struct mg_connection *c) {
   JSON_Value *data = json_value_init_object();
   JSON_Object *obj = json_value_get_object(data);
   JSON_Value *song_val = json_value_init_object();
@@ -124,7 +124,7 @@ send_state:
   json_value_free(data);
 }
 
-void mpd_send_output(struct mg_connection *c) {
+void send_output(struct mg_connection *c) {
   JSON_Value *data = json_value_init_object();
   JSON_Object *obj = json_value_get_object(data);
   JSON_Value *outputs_val = json_value_init_array();
@@ -156,7 +156,7 @@ send_outputs:
   json_value_free(data);
 }
 
-void mpd_send_browse(struct mg_connection *c, const char *uri) {
+void send_browse(struct mg_connection *c, const char *uri) {
   JSON_Value *data = json_value_init_object();
   JSON_Object *obj = json_value_get_object(data);
   JSON_Value *dirs_val = json_value_init_array();
@@ -272,9 +272,9 @@ void mpd_poll(struct mg_mgr *mgr) {
         if (!c->is_websocket || c == NULL) {
           continue;
         }
-        // mpd_send_queue(c);
-        mpd_send_state(c);
-        mpd_send_output(c);
+        // send_queue(c);
+        send_status(c);
+        send_output(c);
         break;
       case MPD_FAILURE:
         LOG(LL_ERROR, ("MPD connection failed"));
@@ -379,10 +379,10 @@ void mpd_callback(struct mg_connection *c, struct mg_ws_message *wm) {
       mpd_run_crossfade(mpd.conn, json_object_get_number(obj, "seconds"));
       break;
     case MPD_GET_QUEUE:
-      mpd_send_queue(c);
+      send_queue(c);
       break;
     case MPD_GET_BROWSE:
-      mpd_send_browse(c, json_object_get_string(obj, "path"));
+      send_browse(c, json_object_get_string(obj, "path"));
       break;
     case MPD_SAVE_QUEUE:
       mpd_run_save(mpd.conn, json_object_get_string(obj, "name"));
@@ -391,7 +391,7 @@ void mpd_callback(struct mg_connection *c, struct mg_ws_message *wm) {
       mpd_search(c, json_object_get_string(obj, "query"));
       break;
     case MPD_GET_OUTPUTS:
-      mpd_send_output(c);
+      send_output(c);
       break;
     case MPD_PLAY_TRACK:
       mpd_run_play_id(mpd.conn, json_object_get_number(obj, "id"));
