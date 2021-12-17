@@ -73,6 +73,7 @@ static void server_handler(struct mg_connection *c, int ev, void *ev_data, void 
         sprintf(music_dir, "%s/Music", getenv("HOME"));
         GdkPixbuf *pixbuf = retrieve_artwork(music_dir, out);
         if (pixbuf) {
+          pixbuf = gdk_pixbuf_scale_simple(pixbuf, 500, 500, GDK_INTERP_BILINEAR);
           gdk_pixbuf_save(pixbuf, image, "png", NULL, NULL);
           mg_http_serve_file(c, hm, image, &opts);
         } else {
