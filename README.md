@@ -8,6 +8,8 @@ lightweight [MPD](https://www.musicpd.org/) (Music Player Daemon) web client wri
 Inspired by [ympd](https://www.ympd.org/) but with modern ui
 
 ![2021-12-08-222617_1340x653_scrot](https://user-images.githubusercontent.com/41364823/145271790-bb274af1-6984-4ef2-8827-1075167336c1.png)
+![2021-12-17-115732_383x657_scrot](https://user-images.githubusercontent.com/41364823/146580516-60100bbc-72d1-4c16-8f66-d88645a79192.png)
+
 
 ## Requirements
 
@@ -43,7 +45,7 @@ Please create an issue :)
 
 ## TODOs
 - [x] Control mpd functions (play, pause, etc.)
-- [ ] Set mpd options (repeat, random, etc.)
+- [x] Set mpd options (repeat, random, etc.)
 - [ ] Browse filesystem
 - [ ] Queue management
 - [ ] Playlist management
