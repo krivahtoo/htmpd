@@ -113,7 +113,7 @@ void send_status(struct mg_connection *c) {
       json_object_set_number(song, "id", mpd_song_get_id(curr_song));
       json_object_set_number(song, "pos", mpd_song_get_pos(curr_song));
       json_object_set_string(song, "uri", mpd_song_get_uri(curr_song));
-      json_object_set_string(song, "year", mpd_song_get_tag (curr_song, MPD_TAG_DATE, 0));
+      json_object_set_string(song, "year", mpd_song_get_tag(curr_song, MPD_TAG_DATE, 0));
     }
   }
   json_object_set_string(obj, "type", "status");
@@ -187,9 +187,8 @@ void send_browse(struct mg_connection *c, const char *uri) {
       json_object_set_string(file, "title", get_title(mpd_entity_get_song(entity)));
       json_object_set_string(file, "artist", mpd_song_get_tag(mpd_entity_get_song(entity), MPD_TAG_ARTIST, 0));
       json_object_set_string(file, "album", mpd_song_get_tag(mpd_entity_get_song(entity), MPD_TAG_ALBUM, 0));
+      json_object_set_string(file, "genre", mpd_song_get_tag(mpd_entity_get_song(entity), MPD_TAG_GENRE, 0));
       json_object_set_number(file, "duration", mpd_song_get_duration(mpd_entity_get_song(entity)));
-      json_object_set_number(file, "id", mpd_song_get_id(mpd_entity_get_song(entity)));
-      json_object_set_number(file, "pos", mpd_song_get_pos(mpd_entity_get_song(entity)));
       json_object_set_string(file, "uri", mpd_song_get_uri(mpd_entity_get_song(entity)));
       json_object_set_string(file, "year", mpd_song_get_tag (mpd_entity_get_song(entity), MPD_TAG_DATE, 0));
       json_array_append_value(files, file_val);
@@ -487,10 +486,14 @@ void mpd_search(struct mg_connection *c, const char *query) {
               while ((curr_song = mpd_recv_song(mpd.conn)) != NULL) {
                 JSON_Value *song_val = json_value_init_object();
                 JSON_Object *song = json_value_get_object(song_val);
+                json_object_set_string(song, "title", get_title(curr_song));
                 json_object_set_string(song, "artist", mpd_song_get_tag(curr_song, MPD_TAG_ARTIST, 0));
                 json_object_set_string(song, "album", mpd_song_get_tag(curr_song, MPD_TAG_ALBUM, 0));
-                json_object_set_string(song, "title", get_title(curr_song));
+                json_object_set_string(song, "genre", mpd_song_get_tag(curr_song, MPD_TAG_GENRE, 0));
+                json_object_set_number(song, "duration", mpd_song_get_duration(curr_song));
                 json_object_set_number(song, "id", mpd_song_get_id(curr_song));
+                json_object_set_string(song, "uri", mpd_song_get_uri(curr_song));
+                json_object_set_string(song, "year", mpd_song_get_tag(curr_song, MPD_TAG_DATE, 0));
                 json_array_append_value(songs, song_val);
                 mpd_song_free(curr_song);
               }
