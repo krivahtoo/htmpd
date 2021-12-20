@@ -21,6 +21,8 @@ export const outputs = writable([])
 
 export const status = writable({})
 
+export const stats = writable({})
+
 export const messages = writable([
   {
     time: Date.now(),

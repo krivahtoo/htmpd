@@ -10,8 +10,8 @@
 
   import routes from './routes'
   import { getCommand } from './utils.js'
-  import { totalTime, queue, outputs, current, playing, status, browse, messages } from './stores.js'
-  
+  import { totalTime, queue, outputs, current, playing, status, browse, messages, stats } from './stores.js'
+
   let ws
   let currentSong = {}
   let connected = false
@@ -59,6 +59,9 @@
           playing.set(data.state === 2)
           status.set(data)
           break
+        case 'stats':
+          stats.set(data)
+          break
         case 'error':
           messages.update(m => m.concat({
             time: Date.now(),
@@ -76,6 +79,7 @@
           }))
           break
         case 'disconnected':
+          playing.set(false)
           messages.update(m => m.concat({
             time: Date.now(),
             duration: 3000,

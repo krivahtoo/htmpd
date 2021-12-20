@@ -1,5 +1,9 @@
 <script>
-  import { queue } from './../stores.js'
+  import { queue, stats } from './../stores.js'
+
+  let currentStats = {}
+
+  stats.subscribe(v => currentStats = v)
 </script>
 
 <div class="hidden md:flex flex-col w-1/5 bg-white rounded-r-3xl overflow-hidden">
@@ -39,11 +43,11 @@
           </svg>
         </span>
         <span class="text-sm font-medium">Browse</span>
-        <span class="ml-auto mr-6 text-sm bg-red-100 rounded-full px-3 py-px text-red-500">0</span>
+        <span class="ml-auto mr-6 text-sm bg-red-100 rounded-full px-3 py-px text-red-500">{ currentStats.songsCount || 0 }</span>
       </a>
     </li>
     <li>
-      <a href="#/browse" class="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800">
+      <a href="#/albums" class="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800">
         <span class="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
           <svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="record-vinyl" class="w-5 h-5" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
             <path fill="currentColor" d="M256 160C202.9 160 160 202.9 160 256s42.92 96 96 96c53.08 0 96-42.92 96-96S309.1 160 256 160zM256 288C238.3 288 224 273.7 224 256s14.33-32 32-32c17.67 0 32 14.33 32 32S273.7 288 256 288zM256 0c-141.4 0-256 114.6-256 256s114.6 256 256 256c141.4 0 256-114.6 256-256S397.4 0 256 0zM256 384c-70.75 0-128-57.25-128-128s57.25-128 128-128s128 57.25 128 128S326.8 384 256 384z">
@@ -51,11 +55,11 @@
           </svg>
         </span>
         <span class="text-sm font-medium">Albums</span>
-        <span class="ml-auto mr-6 text-sm bg-red-100 rounded-full px-3 py-px text-red-500">0</span>
+        <span class="ml-auto mr-6 text-sm bg-red-100 rounded-full px-3 py-px text-red-500">{ currentStats.albumsCount || 0 }</span>
       </a>
     </li>
     <li>
-      <a href="#/browse" class="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800">
+      <a href="#/artists" class="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800">
         <span class="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
           <svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="user" class="w-5 h-5" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
             <path fill="currentColor" d="M224 256c70.7 0 128-57.31 128-128s-57.3-128-128-128C153.3 0 96 57.31 96 128S153.3 256 224 256zM274.7 304H173.3C77.61 304 0 381.6 0 477.3c0 19.14 15.52 34.67 34.66 34.67h378.7C432.5 512 448 496.5 448 477.3C448 381.6 370.4 304 274.7 304z">
@@ -63,6 +67,7 @@
           </svg>
         </span>
         <span class="text-sm font-medium">Artists</span>
+        <span class="ml-auto mr-6 text-sm bg-red-100 rounded-full px-3 py-px text-red-500">{ currentStats.artistsCount || 0 }</span>
       </a>
     </li>
     <li>

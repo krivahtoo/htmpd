@@ -2,28 +2,22 @@
   export let type = 'queue'
 
   import { onMount } from 'svelte'
-  import { totalTime, queue, browse } from './../stores.js'
+  import { totalTime, queue, browse, stats } from './../stores.js'
 
   import Song from './Song.svelte'
 
   let songs = []
   let time = ''
+  let currentStats = {}
 
   onMount(() => {
     switch (type) {
       case 'queue':
-        queue.subscribe(q => {
-          songs = q
-        })
-        totalTime.subscribe(t => {
-          let h = Math.floor(t / 3600);
-          let m = Math.floor(t % 3600 / 60);
-          let s = Math.floor(t % 3600 % 60);
-
-          time = `${h} hours ${m} minutes ${s} seconds`
-        })
+        queue.subscribe(q => songs = q)
+        totalTime.subscribe(t => time = formatTime(t))
         break
       case 'browse':
+        stats.subscribe(v => currentStats = v)
         browse.subscribe(b => {
           if (b && b.files) {
             songs = b.files
@@ -37,13 +31,27 @@
         break
     }
   })
+
+  const formatTime = (t) => {
+    t = parseInt(t)
+    if (t <= 0) return t
+    let h = Math.floor(t / 3600)
+    let m = Math.floor(t % 3600 / 60)
+    let s = Math.floor(t % 3600 % 60)
+
+    return `${h} hours ${m} minutes ${s} seconds`
+  }
 </script>
 
 <div class="w-full max-h-screen mt-5 mb-40 max-w-6xl mx-auto bg-white shadow-lg rounded-3xl overflow-y-auto relative">
   <header class="flex sticky top-0 px-5 py-5 z-10 border-b border-gray-100 bg-gray-50">
     <h2 class="font-semibold text-gray-800">Songs</h2>
     <span class="ml-auto text-sm text-gray-400">
+    {#if type == 'browse'}
+      Total DB Time { formatTime(currentStats.dbPlayTime) }
+    {:else}
       Total Time { time }
+    {/if}
     </span>
   </header>
   <div class="p-3 relative" style="height: 450px;">
