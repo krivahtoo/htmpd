@@ -136,6 +136,9 @@ static void server_handler(struct mg_connection *c, int ev, void *ev_data, void 
   } else if (ev == MG_EV_WS_MSG) {
     struct mg_ws_message *wm = (struct mg_ws_message *) ev_data;
     mpd_callback(c, wm);
+  } else if (ev == MG_EV_CLOSE) {
+    if (c2 != NULL) c2->is_closing = 1;
+    c->fn_data = NULL;
   }
   (void) fn_data;
 }
