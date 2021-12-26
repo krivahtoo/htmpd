@@ -218,6 +218,7 @@ int main(int argc, const char **argv)
   }
   mpd_disconnect();
   mg_mgr_free(&mgr);
+  free(verbose);
 
   return 0;
 }
