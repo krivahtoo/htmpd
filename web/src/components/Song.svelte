@@ -39,7 +39,7 @@
   }
 </script>
 
-<tr 
+<tr
   class="cursor-pointer hover:bg-gray-200 { (song.id == currentStatus.current) ? 'text-green-500' : '' }"
   title={ (type == 'queue') ? `Play ${song.title}` : 'Add to queue' }
   on:click="{play}">
@@ -56,24 +56,30 @@
   {/if}
   <td class="p-2 whitespace-nowrap w-1/3 overflow-hidden">
     <div class="flex flex-nowrap items-center">
+      {#if type !== 'browse'}
       <div class="w-10 h-10 flex-shrink-0 mr-2 sm:mr-3">
         <img
           class="rounded-full { (song.id == currentStatus.current) ? 'bg-blue-200' : '' }"
           src={ song.uri || albumArt }
           onerror="this.src='/logo.svg'"
-          width="40" height="40" alt="{song.title}">
+          width="40" height="40" alt={song.title}>
       </div>
+      {/if}
       <div class="flex-grow-0 mr-2 sm:mr-3 overflow-hidden">
-        <h2 class="text-sm leading-5 font-medium { (song.id == currentStatus.current) ? 'text-green-500' : 'text-gray-900 '}">{ song.title }</h2>
+        <h2 class="text-sm leading-5 font-medium { (song.id == currentStatus.current) ? 'text-green-500' : 'text-gray-900 '}">
+          { (song.title.length > 30) ? song.title.substr(0, 29) + '...' : song.title }
+        </h2>
         <h3
           class="text-sm leading-5 font-medium { (song.id == currentStatus.current) ? 'text-green-300' : 'text-gray-500' }">
-          { (song.artist.length > 30) ? song.artist.substr(0, 29) + '...' : song.artist } | { song.year || '-' }
+          { (song.artist.length > 25) ? song.artist.substr(0, 24) + '...' : song.artist } | { song.year || '-' }
         </h3>
       </div>
     </div>
   </td>
-  <td class="p-2 whitespace-nowrap">
-    <div class="text-left font-medium">{ song.album }</div>
+  <td class="hidden md:block p-2 whitespace-nowrap">
+    <div class="text-left font-medium">
+      { (song.album.length > 25) ? song.album.substr(0, 24) + '...' : song.album }
+    </div>
   </td>
   <td class="p-2 whitespace-nowrap">
     <div class="text-lg text-center">{ secondsToString(song.duration) }</div>

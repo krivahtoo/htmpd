@@ -8,18 +8,31 @@
 
   let songs = []
   let time = ''
+  let pagination = {
+    offset: 0,
+    limit: 20,
+    total: 0
+  }
   let currentStats = {}
 
   onMount(() => {
     switch (type) {
       case 'queue':
-        queue.subscribe(q => songs = q)
+        queue.subscribe(q => {
+          pagination.offset = q.offset
+          pagination.limit = q.limit
+          pagination.total = q.total
+          songs = q
+        })
         totalTime.subscribe(t => time = formatTime(t))
         break
       case 'browse':
         stats.subscribe(v => currentStats = v)
         browse.subscribe(b => {
           if (b && b.files) {
+            pagination.offset = b.offset
+            pagination.limit = b.limit
+            pagination.total = b.total
             songs = b.files
           }
         })
@@ -43,8 +56,8 @@
   }
 </script>
 
-<div class="w-full max-h-screen mt-5 mb-40 max-w-6xl mx-auto bg-white shadow-lg rounded-3xl overflow-y-auto relative">
-  <header class="flex sticky top-0 px-5 py-5 z-10 border-b border-gray-100 bg-gray-50">
+<div class="w-full max-h-screen mt-5 mb-20 max-w-6xl mx-auto bg-white shadow-sm rounded-3xl overflow-y-auto relative">
+  <header class="flex sticky top-0 px-5 py-5 z-10 border-b border-gray-100 bg-gray-50 overflow-x-hidden">
     <h2 class="font-semibold text-gray-800">Songs</h2>
     <span class="ml-auto text-sm text-gray-400">
     {#if type == 'browse'}
@@ -54,30 +67,52 @@
     {/if}
     </span>
   </header>
-  <div class="p-3 relative" style="height: 450px;">
-    <div class="overflow-x-auto bg-white rounded-lg shadow overflow-y-auto relative">
-      <table class="border-collapse table-auto w-full mb-11 whitespace-no-wrap bg-white table-striped relative">
-        <thead class="text-xs sticky top-1 font-semibold uppercase text-gray-400 bg-gray-50">
-          <tr>
-            <th class="p-1">Id</th>
-            <th class="p-2 whitespace-nowrap">
-              <div class="font-semibold text-left">Title</div>
-            </th>
-            <th class="p-2 whitespace-nowrap">
-              <div class="font-semibold text-left">Album</div>
-            </th>
-            <th class="p-2 whitespace-nowrap">
-              <div class="font-semibold text-center">Duration</div>
-            </th>
-          </tr>
-        </thead>
-        <tbody class="text-sm divide-y divide-gray-100">
-          {#each songs as song}
-            <Song {song} {type} />
-          {/each}
-        </tbody>
-      </table>
-    </div>
-  </div>
+  <table class="border-collapse table-auto w-full mb-5 whitespace-no-wrap bg-white table-striped relative">
+    <thead class="text-xs sticky top-1 font-semibold uppercase text-gray-400 bg-gray-50">
+      <tr>
+        <th class="p-1">Id</th>
+        <th class="p-2 whitespace-nowrap">
+          <div class="font-semibold text-left">Title</div>
+        </th>
+        <th class="hidden md:block p-2 whitespace-nowrap">
+          <div class="font-semibold text-left">Album</div>
+        </th>
+        <th class="p-2 whitespace-nowrap">
+          <div class="font-semibold text-center">Duration</div>
+        </th>
+      </tr>
+    </thead>
+    <tbody class="text-sm divide-y divide-gray-100">
+      {#each songs as song}
+        <Song {song} {type} />
+      {/each}
+    </tbody>
+  </table>
+  <nav aria-label="Page navigation example" class="ml-10 pb-48">
+    <ul class="inline-flex space-x-2">
+      <li>
+        <a href="#"
+          class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-3xl">
+          Previous
+        </a>
+      </li>
+      {#if Math.ceil(pagination.total/pagination.limit) > 0}
+        {#each Array(Math.ceil(pagination.total/pagination.limit)) as _, i}
+        <li>
+          <a href={ type === 'queue' ? `#/?page=${i+1}` : `#/${type}?page=${i+1}` }
+            class="bg-white border border-gray-300 text-gray-500 hover:bg-gray-100 hover:text-gray-700 rounded-3xl leading-tight py-2 px-3 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+            {i+1}
+          </a>
+        </li>
+        {/each}
+      {/if}
+      <li>
+        <a href="#"
+          class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-3xl">
+          Next
+        </a>
+      </li>
+    </ul>
+  </nav>
 </div>
 

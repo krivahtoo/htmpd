@@ -132,6 +132,11 @@
         runCommand('add_track', { path: e.detail })
       }
     })
+    document.addEventListener('browse', function (e) {
+      if (connected) {
+        runCommand('browse', e.detail)
+      }
+    })
     document.addEventListener('queue', function () {
       if (connected) {
         runCommand('queue')
