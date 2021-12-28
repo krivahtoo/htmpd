@@ -441,9 +441,26 @@ void mpd_callback(struct mg_connection *c, struct mg_ws_message *wm) {
     case MPD_RM_TRACK:
       mpd_run_delete_id(mpd.conn, json_object_get_number(obj, "id"));
       break;
+    case MPD_RM_ALL:
+      mpd_run_clear(mpd.conn);
+      break;
     case MPD_ADD_TRACK:
       mpd_run_add(mpd.conn, json_object_get_string(obj, "path"));
       break;
+    case MPD_ADD_PLAY_TRACK: {
+        int i = mpd_run_add_id(mpd.conn, json_object_get_string(obj, "path"));
+        if (i <= 0) {
+          JSON_Value *val = json_value_init_object();
+          JSON_Object *val_obj = json_value_get_object(val);
+          json_object_set_string(val_obj, "type", "error");
+          json_object_set_string(val_obj, "message", "Could not add song to queue");
+          char *str = json_serialize_to_string(val);
+          mg_ws_send(c, str, strlen(str), WEBSOCKET_OP_TEXT);
+          json_value_free(val);
+        } else {
+          mpd_run_play_id(mpd.conn, i);
+        }
+      } break;
     case MPD_ADD_PLAYLIST:
       mpd_run_load(mpd.conn, json_object_get_string(obj, "name"));
       break;
