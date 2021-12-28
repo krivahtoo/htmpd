@@ -314,7 +314,9 @@ void mpd_poll(struct mg_mgr *mgr) {
           json_object_set_string(obj, "message", mpd_connection_get_error_message(mpd.conn));
           char *json_str = json_serialize_to_string(data);
           mg_ws_send(c, json_str, strlen(json_str), WEBSOCKET_OP_TEXT);
+          json_value_free(data);
         }
+        // try recovering
         if (!mpd_connection_clear_error(mpd.conn)) {
           mpd.conn_state = MPD_FAILURE;
         }
@@ -351,6 +353,7 @@ void mpd_poll(struct mg_mgr *mgr) {
             // json_object_set_string(obj, "version", mpd.version);
             char *msg = json_serialize_to_string(data);
             mg_ws_send(c, msg, strlen(msg), WEBSOCKET_OP_TEXT);
+            json_value_free(data);
           }
         }
         break;
@@ -385,11 +388,12 @@ void mpd_callback(struct mg_connection *c, struct mg_ws_message *wm) {
   enum mpd_cmds cmd_id = get_cmd_id(obj);
   if (mpd.conn_state != MPD_CONNECTED) {
     LOG(LL_ERROR, ("MPD is not connected"));
-    JSON_Value *data = json_value_init_object();
-    JSON_Object *obj = json_value_get_object(data);
-    json_object_set_string(obj, "type", "disconnected");
-    char *json_str = json_serialize_to_string(data);
+    JSON_Value *dt = json_value_init_object();
+    JSON_Object *dt_obj = json_value_get_object(dt);
+    json_object_set_string(dt_obj, "type", "disconnected");
+    char *json_str = json_serialize_to_string(dt);
     mg_ws_send(c, json_str, strlen(json_str), WEBSOCKET_OP_TEXT);
+    json_value_free(dt);
     return;
   }
   switch (cmd_id) {
@@ -397,22 +401,24 @@ void mpd_callback(struct mg_connection *c, struct mg_ws_message *wm) {
       if (mpd.conn_state == MPD_CONNECTED) {
         if (mpd_run_update(mpd.conn, NULL)) {
           LOG(LL_DEBUG, ("MPD update database"));
-          JSON_Value *data = json_value_init_object();
-          JSON_Object *obj = json_value_get_object(data);
-          json_object_set_string(obj, "type", "update");
-          json_object_set_boolean(obj, "success", true);
-          char *msg = json_serialize_to_string(data);
+          JSON_Value *dt = json_value_init_object();
+          JSON_Object *dt_obj = json_value_get_object(dt);
+          json_object_set_string(dt_obj, "type", "update");
+          json_object_set_boolean(dt_obj, "success", true);
+          char *msg = json_serialize_to_string(dt);
           mg_ws_send(c, msg, strlen(msg), WEBSOCKET_OP_TEXT);
+          json_value_free(dt);
           mpd.conn_state = MPD_RECONNECT;
         } else {
           LOG(LL_ERROR, ("MPD update database failed: %s", mpd_connection_get_error_message(mpd.conn)));
-          JSON_Value *data = json_value_init_object();
-          JSON_Object *obj = json_value_get_object(data);
-          json_object_set_string(obj, "type", "update");
-          json_object_set_boolean(obj, "success", false);
-          json_object_set_string(obj, "message", mpd_connection_get_error_message(mpd.conn));
-          char *msg = json_serialize_to_string(data);
+          JSON_Value *dt = json_value_init_object();
+          JSON_Object *dt_obj = json_value_get_object(dt);
+          json_object_set_string(dt_obj, "type", "update");
+          json_object_set_boolean(dt_obj, "success", false);
+          json_object_set_string(dt_obj, "message", mpd_connection_get_error_message(mpd.conn));
+          char *msg = json_serialize_to_string(dt);
           mg_ws_send(c, msg, strlen(msg), WEBSOCKET_OP_TEXT);
+          json_value_free(dt);
           mpd.conn_state = MPD_FAILURE;
         }
       }
@@ -506,28 +512,30 @@ void mpd_callback(struct mg_connection *c, struct mg_ws_message *wm) {
     case MPD_GET_COMMANDS:
       if(mpd_send_allowed_commands(mpd.conn)) {
         struct mpd_pair *command;
-        JSON_Value *data = json_value_init_object();
-        JSON_Object *obj = json_value_get_object(data);
+        JSON_Value *dt = json_value_init_object();
+        JSON_Object *dt_obj = json_value_get_object(dt);
         JSON_Value *cmds = json_value_init_array();
         JSON_Array *cmds_arr = json_value_get_array(cmds);
         while ((command = mpd_recv_command_pair(mpd.conn)) != NULL) {
           json_array_append_string(cmds_arr, command->value);
           mpd_return_pair(mpd.conn, command);
         }
-        json_object_set_string(obj, "type", "commands");
-        json_object_set_value(obj, "commands", cmds);
-        char * msg = json_serialize_to_string(data);
+        json_object_set_string(dt_obj, "type", "commands");
+        json_object_set_value(dt_obj, "commands", cmds);
+        char * msg = json_serialize_to_string(dt);
         mg_ws_send(c, msg, strlen(msg), WEBSOCKET_OP_TEXT);
+        json_value_free(dt);
       }
       break;
     default:
       LOG(LL_ERROR, ("Unknown command: %d", cmd_id));
-      JSON_Value *data = json_value_init_object();
-      JSON_Object *obj = json_value_get_object(data);
-      json_object_set_string(obj, "type", "error");
-      json_object_set_string(obj, "message", "Unknown command");
-      char *msg = json_serialize_to_string(data);
+      JSON_Value *dt = json_value_init_object();
+      JSON_Object *dt_obj = json_value_get_object(dt);
+      json_object_set_string(dt_obj, "type", "error");
+      json_object_set_string(dt_obj, "message", "Unknown command");
+      char *msg = json_serialize_to_string(dt);
       mg_ws_send(c, msg, strlen(msg), WEBSOCKET_OP_TEXT);
+      json_value_free(dt);
       break;
   }
   json_value_free(data);
