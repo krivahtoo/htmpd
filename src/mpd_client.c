@@ -71,16 +71,17 @@ void send_queue(struct mg_connection *c, double offset, double limit) {
     i++;
   }
   json_object_set_string(obj, "type", "queue");
-
-send_queue:
   json_object_set_number(obj, "limit", loc_limit);
   json_object_set_number(obj, "offset", offset);
   json_object_set_number(obj, "total", i);
   json_object_set_number(obj, "totalTime", totalTime);
   json_object_set_value(obj, "queue", songs_val);
-  char *json_str = json_serialize_to_string(data);
 
-  mg_ws_send(c, json_str, strlen(json_str), WEBSOCKET_OP_TEXT);
+send_queue:
+  {
+    char *json_str = json_serialize_to_string(data);
+    mg_ws_send(c, json_str, strlen(json_str), WEBSOCKET_OP_TEXT);
+  }
   json_value_free(data);
 }
 
@@ -94,14 +95,14 @@ void send_status(struct mg_connection *c) {
   json_object_set_string(obj, "type", "error");
     json_object_set_string(obj, "message", mpd_connection_get_error_message(mpd.conn));
     mpd.conn_state = MPD_FAILURE;
-    goto send_state;
+    goto send_status;
   }
   struct mpd_status *status = mpd_recv_status(mpd.conn);
   if(status == NULL) {
     json_object_set_string(obj, "type", "error");
     json_object_set_string(obj, "message", mpd_connection_get_error_message(mpd.conn));
     mpd.conn_state = MPD_FAILURE;
-    goto send_state;
+    goto send_status;
   }
   json_object_set_number(obj, "volume", mpd_status_get_volume(status));
   json_object_set_number(obj, "repeat", mpd_status_get_repeat(status));
@@ -132,12 +133,13 @@ void send_status(struct mg_connection *c) {
     }
   }
   json_object_set_string(obj, "type", "status");
-
-send_state:
   json_object_set_value(obj, "song", song_val);
-  char *json_str = json_serialize_to_string(data);
 
-  mg_ws_send(c, json_str, strlen(json_str), WEBSOCKET_OP_TEXT);
+send_status:
+  {
+    char *json_str = json_serialize_to_string(data);
+    mg_ws_send(c, json_str, strlen(json_str), WEBSOCKET_OP_TEXT);
+  }
   json_value_free(data);
 }
 
@@ -164,12 +166,13 @@ void send_output(struct mg_connection *c) {
     mpd_output_free(output);
   }
   json_object_set_string(obj, "type", "outputs");
+  json_object_set_value(obj, "outputs", outputs_val);
 
 send_outputs:
-  json_object_set_value(obj, "outputs", outputs_val);
-  char *json_str = json_serialize_to_string(data);
-
-  mg_ws_send(c, json_str, strlen(json_str), WEBSOCKET_OP_TEXT);
+  {
+    char *json_str = json_serialize_to_string(data);
+    mg_ws_send(c, json_str, strlen(json_str), WEBSOCKET_OP_TEXT);
+  }
   json_value_free(data);
 }
 
@@ -251,8 +254,6 @@ void send_browse(struct mg_connection *c, const char *uri, double offset, double
     i++;
   }
   json_object_set_string(obj, "type", "browse");
-
-send_browse:
   json_object_set_number(obj, "limit", loc_limit);
   json_object_set_number(obj, "offset", offset);
   json_object_set_number(obj, "total", i);
@@ -262,9 +263,12 @@ send_browse:
   json_object_set_value(obj, "dirs", dirs_val);
   json_object_set_value(obj, "files", files_val);
   json_object_set_value(obj, "playlists", playlists_val);
-  char *json_str = json_serialize_to_string(data);
 
-  mg_ws_send(c, json_str, strlen(json_str), WEBSOCKET_OP_TEXT);
+send_browse:
+  {
+    char *json_str = json_serialize_to_string(data);
+    mg_ws_send(c, json_str, strlen(json_str), WEBSOCKET_OP_TEXT);
+  }
   json_value_free(data);
 }
 
