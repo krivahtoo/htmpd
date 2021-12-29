@@ -297,6 +297,29 @@ void send_stats(struct mg_connection *c) {
   json_value_free(data);
 }
 
+void send_channels(struct mg_connection *c) {
+  JSON_Value *data = json_value_init_object();
+  JSON_Object *obj = json_value_get_object(data);
+  if (mpd_send_channels(mpd.conn)) {
+    JSON_Value *channels_val = json_value_init_array();
+    JSON_Array *channels = json_value_get_array(channels_val);
+    struct mpd_pair *channel;
+    while ((channel = mpd_recv_channel_pair(mpd.conn)) != NULL) {
+      json_array_append_string(channels, channel->value);
+      mpd_return_pair(mpd.conn, channel);
+    }
+    json_object_set_string(obj, "type", "channels");
+    json_object_set_value(obj, "channels", channels_val);
+  } else {
+    json_object_set_string(obj, "type", "error");
+    json_object_set_string(obj, "message", "Could not send channels");
+  }
+  char *json_str = json_serialize_to_string(data);
+
+  mg_ws_send(c, json_str, strlen(json_str), WEBSOCKET_OP_TEXT);
+  json_value_free(data);
+}
+
 void mpd_poll(struct mg_mgr *mgr) {
   struct mg_connection *c, *tmp;
   for(c = mgr->conns; c != NULL; c = tmp) {
@@ -422,6 +445,9 @@ void mpd_callback(struct mg_connection *c, struct mg_ws_message *wm) {
           mpd.conn_state = MPD_FAILURE;
         }
       }
+      break;
+    case MPD_GET_CHANNELS:
+      send_channels(c);
       break;
     case MPD_SET_PLAY:
       mpd_run_play(mpd.conn);
