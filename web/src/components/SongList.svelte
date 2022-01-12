@@ -5,6 +5,7 @@
   import { totalTime, queue, browse, stats } from './../stores.js'
 
   import Song from './Song.svelte'
+  import Pagination from './Pagination.svelte'
 
   let songs = []
   let time = ''
@@ -22,7 +23,7 @@
           pagination.offset = q.offset
           pagination.limit = q.limit
           pagination.total = q.total
-          songs = q
+          songs = q.queue || []
         })
         totalTime.subscribe(t => time = formatTime(t))
         break
@@ -88,31 +89,8 @@
       {/each}
     </tbody>
   </table>
-  <nav aria-label="Page navigation example" class="ml-10 pb-48">
-    <ul class="inline-flex space-x-2">
-      <li>
-        <a href="#"
-          class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-3xl">
-          Previous
-        </a>
-      </li>
-      {#if Math.ceil(pagination.total/pagination.limit) > 0}
-        {#each Array(Math.ceil(pagination.total/pagination.limit)) as _, i}
-        <li>
-          <a href={ type === 'queue' ? `#/?page=${i+1}` : `#/${type}?page=${i+1}` }
-            class="bg-white border border-gray-300 text-gray-500 hover:bg-gray-100 hover:text-gray-700 rounded-3xl leading-tight py-2 px-3 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
-            {i+1}
-          </a>
-        </li>
-        {/each}
-      {/if}
-      <li>
-        <a href="#"
-          class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-3xl">
-          Next
-        </a>
-      </li>
-    </ul>
-  </nav>
+  {#if pagination.total > 0}
+    <Pagination {pagination} path={ type === 'queue' ? '#/' : `#/${type}` } />
+  {/if}
 </div>
 

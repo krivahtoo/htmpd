@@ -1,13 +1,9 @@
 <script>
   import { onMount } from 'svelte'
-  import { location, querystring } from 'svelte-spa-router'
+  import { querystring } from 'svelte-spa-router'
   import SongList from '../components/SongList.svelte'
 
   let search = new URLSearchParams('page=1&limit=20')
-
-  location.subscribe(v => {
-    console.log(v)
-  })
 
   onMount(() => {
     let limit = 20
@@ -19,7 +15,6 @@
       limit = 20
       page = 1
       search = new URLSearchParams(v)
-      console.log(search.get('page'), search.get('limit'))
       if (search.has('page')) { page = parseInt(search.get('page')) }
       if (search.has('limit')) { limit = parseInt(search.get('limit')) }
       sendParams(page, limit)

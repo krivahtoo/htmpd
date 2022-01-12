@@ -43,7 +43,7 @@
       let data = JSON.parse(event.data)
       switch (data.type) {
         case 'queue':
-          queue.set(data.queue)
+          queue.set(data)
           totalTime.set(data.totalTime)
           break
         case 'browse':
@@ -137,9 +137,9 @@
         runCommand('browse', e.detail)
       }
     })
-    document.addEventListener('queue', function () {
+    document.addEventListener('queue', function (e) {
       if (connected) {
-        runCommand('queue')
+        runCommand('queue', e.detail)
       }
     })
   })

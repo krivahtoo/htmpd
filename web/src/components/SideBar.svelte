@@ -1,9 +1,5 @@
 <script>
-  import { queue, stats } from './../stores.js'
-
-  let currentStats = {}
-
-  stats.subscribe(v => currentStats = v)
+  import { queue, stats, browse } from './../stores.js'
 </script>
 
 <div class="hidden md:flex flex-col w-1/5 bg-white rounded-r-3xl overflow-hidden">
@@ -14,12 +10,13 @@
     <li>
       <a href="#/" class="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800">
         <span class="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
-          <svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="house-chimney" class="w-5 h-5" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><path fill="currentColor" d="M511.8 287.6L512.5 447.7C512.5 450.5 512.3 453.1 512 455.8V472C512 494.1 494.1 512 472 512H456C454.9 512 453.8 511.1 452.7 511.9C451.3 511.1 449.9 512 448.5 512H392C369.9 512 352 494.1 352 472V384C352 366.3 337.7 352 320 352H256C238.3 352 224 366.3 224 384V472C224 494.1 206.1 512 184 512H128.1C126.6 512 125.1 511.9 123.6 511.8C122.4 511.9 121.2 512 120 512H104C81.91 512 64 494.1 64 472V360C64 359.1 64.03 358.1 64.09 357.2V287.6H32.05C14.02 287.6 0 273.5 0 255.5C0 246.5 3.004 238.5 10.01 231.5L266.4 8.016C273.4 1.002 281.4 0 288.4 0C295.4 0 303.4 2.004 309.5 7.014L416 100.7V64C416 46.33 430.3 32 448 32H480C497.7 32 512 46.33 512 64V185L564.8 231.5C572.8 238.5 576.9 246.5 575.8 255.5C575.8 273.5 560.8 287.6 543.8 287.6L511.8 287.6z">
+          <svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="house-chimney" class="w-5 h-5" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512">
+            <path fill="currentColor" d="M511.8 287.6L512.5 447.7C512.5 450.5 512.3 453.1 512 455.8V472C512 494.1 494.1 512 472 512H456C454.9 512 453.8 511.1 452.7 511.9C451.3 511.1 449.9 512 448.5 512H392C369.9 512 352 494.1 352 472V384C352 366.3 337.7 352 320 352H256C238.3 352 224 366.3 224 384V472C224 494.1 206.1 512 184 512H128.1C126.6 512 125.1 511.9 123.6 511.8C122.4 511.9 121.2 512 120 512H104C81.91 512 64 494.1 64 472V360C64 359.1 64.03 358.1 64.09 357.2V287.6H32.05C14.02 287.6 0 273.5 0 255.5C0 246.5 3.004 238.5 10.01 231.5L266.4 8.016C273.4 1.002 281.4 0 288.4 0C295.4 0 303.4 2.004 309.5 7.014L416 100.7V64C416 46.33 430.3 32 448 32H480C497.7 32 512 46.33 512 64V185L564.8 231.5C572.8 238.5 576.9 246.5 575.8 255.5C575.8 273.5 560.8 287.6 543.8 287.6L511.8 287.6z">
             </path>
           </svg>
         </span>
         <span class="text-sm font-medium">Home</span>
-        <span class="ml-auto mr-6 text-sm bg-red-100 rounded-full px-3 py-px text-red-500">{ $queue.length }</span>
+        <span class="ml-auto mr-6 text-sm bg-red-100 rounded-full px-3 py-px text-red-500">{ $queue.total || 0 }</span>
       </a>
     </li>
     <li>
@@ -31,7 +28,7 @@
           </svg>
         </span>
         <span class="text-sm font-medium">Playlist</span>
-        <span class="ml-auto mr-6 text-sm bg-red-100 rounded-full px-3 py-px text-red-500">0</span>
+        <span class="ml-auto mr-6 text-sm bg-red-100 rounded-full px-3 py-px text-red-500">{ $browse.playlistsCount || 0 }</span>
       </a>
     </li>
     <li>
@@ -43,7 +40,7 @@
           </svg>
         </span>
         <span class="text-sm font-medium">Browse</span>
-        <span class="ml-auto mr-6 text-sm bg-red-100 rounded-full px-3 py-px text-red-500">{ currentStats.songsCount || 0 }</span>
+        <span class="ml-auto mr-6 text-sm bg-red-100 rounded-full px-3 py-px text-red-500">{ $stats.songsCount || 0 }</span>
       </a>
     </li>
     <li>
@@ -55,7 +52,7 @@
           </svg>
         </span>
         <span class="text-sm font-medium">Albums</span>
-        <span class="ml-auto mr-6 text-sm bg-red-100 rounded-full px-3 py-px text-red-500">{ currentStats.albumsCount || 0 }</span>
+        <span class="ml-auto mr-6 text-sm bg-red-100 rounded-full px-3 py-px text-red-500">{ $stats.albumsCount || 0 }</span>
       </a>
     </li>
     <li>
@@ -67,18 +64,18 @@
           </svg>
         </span>
         <span class="text-sm font-medium">Artists</span>
-        <span class="ml-auto mr-6 text-sm bg-red-100 rounded-full px-3 py-px text-red-500">{ currentStats.artistsCount || 0 }</span>
+        <span class="ml-auto mr-6 text-sm bg-red-100 rounded-full px-3 py-px text-red-500">{ $stats.artistsCount || 0 }</span>
       </a>
     </li>
     <li>
-      <a href="#" class="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800">
+      <a href="#/" class="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800">
         <span class="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400"><i class="bx bx-bell"></i></span>
         <span class="text-sm font-medium">Notifications</span>
         <span class="ml-auto mr-6 text-sm bg-red-100 rounded-full px-3 py-px text-red-500">5</span>
       </a>
     </li>
     <li>
-      <a href="#" class="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800">
+      <a href="#/" class="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800">
         <span class="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400"><i class="bx bx-log-out"></i></span>
         <span class="text-sm font-medium">Settings</span>
       </a>
