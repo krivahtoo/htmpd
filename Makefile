@@ -11,7 +11,7 @@ VERSION=$(shell git describe --long --tags)
 
 ASSETS=index.html favicon.png logo.svg build/bundle.js build/bundle.css
 
-htmpd: src/*.c assets version.h
+htmpd: src/*.c src/*.h
 	$(CC) -o htmpd $(FILES)  $(CFLAGS) $(LIBS)
 
 assets: dist/index.html dist/build/bundle.js dist/build/bundle.css

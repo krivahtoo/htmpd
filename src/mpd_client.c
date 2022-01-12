@@ -47,7 +47,7 @@ void send_queue(struct mg_connection *c, double offset, double limit) {
     goto send_queue;
   }
   while((entity = mpd_recv_entity(mpd.conn)) != NULL) {
-    if (i >= offset && j <= loc_limit) {
+    if (i >= offset && j < loc_limit) {
       const struct mpd_song *curr_song = mpd_entity_get_song(entity);
       if(mpd_entity_get_type(entity) == MPD_ENTITY_TYPE_SONG) {
         curr_song = mpd_entity_get_song(entity);
@@ -219,7 +219,7 @@ void send_browse(struct mg_connection *c, const char *uri, double offset, double
       default:
         break;
     }
-    if (i >= offset && j <= loc_limit) {
+    if (i >= offset && j < loc_limit) {
       switch(mpd_entity_get_type(entity)) {
         case MPD_ENTITY_TYPE_DIRECTORY: {
           JSON_Value *dir_val = json_value_init_object();
@@ -448,6 +448,9 @@ void mpd_callback(struct mg_connection *c, struct mg_ws_message *wm) {
       break;
     case MPD_GET_CHANNELS:
       send_channels(c);
+      break;
+    case MPD_SEND_MESSAGE:
+      mpd_run_send_message(mpd.conn, json_object_get_string(obj, "channel"), json_object_get_string(obj, "text"));
       break;
     case MPD_SET_PLAY:
       mpd_run_play(mpd.conn);
