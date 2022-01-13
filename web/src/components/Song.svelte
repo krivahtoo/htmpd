@@ -42,17 +42,19 @@
 <tr
   class="cursor-pointer hover:bg-gray-200 { (song.id == currentStatus.current) ? 'text-green-500' : '' }"
   title={ (type == 'queue') ? `Play ${song.title}` : 'Add to queue' }
-  on:click="{play}">
+  on:click={ play }>
   {#if song.id == currentStatus.current && currentStatus.state == 2}
-    <div class="icon relative left-1 top-5 flex justify-between">
-      <span class="bg-green-500"></span>
-      <span class="bg-green-500"></span>
-      <span class="bg-green-500"></span>
-    </div>
+    <tr class="flex justify-center">
+      <div class="icon relative left-1 top-5 flex justify-between">
+        <span class="bg-green-500"></span>
+        <span class="bg-green-500"></span>
+        <span class="bg-green-500"></span>
+      </div>
+    </tr>
   {:else if type == 'browse'}
-    <td class="p-1">+</td>
+    <td class="p-1 text-center">+</td>
   {:else}
-    <td class="p-1">{ song.id }</td>
+    <td class="p-1 text-center">{ song.id }</td>
   {/if}
   <td class="p-2 whitespace-nowrap w-1/3 overflow-hidden">
     <div class="flex flex-nowrap items-center">

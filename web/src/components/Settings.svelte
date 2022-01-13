@@ -69,11 +69,6 @@
         dispatch('toggle', [cmd, { id: val }])
         break
     }
-    // if (cmd !== 'crossfade') {
-    //   dispatch('toggle', [cmd, { mode: val }])
-    // } else {
-    //   dispatch('toggle', [cmd, { seconds: val }])
-    // }
   }
 </script>
 

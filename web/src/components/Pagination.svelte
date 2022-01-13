@@ -32,11 +32,14 @@
     })
   })
 
+  // Generate path with querystring e.g. #/browse?page=2&limit=10
   function getPath(page = 1) {
     search.set("page", page)
     return `${path}?${search.toString()}`
   }
 
+  // Generate pages to be displayed. e.g. 1 ... 5 6 7 8 9 ... 20
+  // with offset of 2                  current page ↑
   function genPages(size, curr = 1, offset = 3) {
     return [...Array(size).keys()]
       .map(i => i + 1)

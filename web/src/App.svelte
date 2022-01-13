@@ -22,16 +22,11 @@
 
     // Connection opened
     ws.addEventListener('open', function () {
-      ws.send(JSON.stringify({
-        cmd_id: getCommand('queue') || 0
-      }))
-      ws.send(JSON.stringify({
-        cmd_id: getCommand('outputs')
-      }))
-      ws.send(JSON.stringify({
-        cmd_id: getCommand('browse')
-      }))
       connected = true
+      // commands to initialize
+      ;['queue', 'outputs', 'browse']
+        .map(v => runCommand(v))
+
       messages.update(msg => msg.concat({
         time: Date.now(),
         duration: 1000,

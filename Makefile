@@ -11,7 +11,7 @@ VERSION=$(shell git describe --long --tags)
 
 ASSETS=index.html favicon.png logo.svg build/bundle.js build/bundle.css
 
-htmpd: src/*.c src/*.h
+htmpd: src/*.c src/*.h version.h
 	$(CC) -o htmpd $(FILES)  $(CFLAGS) $(LIBS)
 
 assets: dist/index.html dist/build/bundle.js dist/build/bundle.css
@@ -29,4 +29,5 @@ compile_commands:
 clean:
 	rm -f htmpd
 	rm -f compile_commands.json
+	rm -f ./src/version.h
 
