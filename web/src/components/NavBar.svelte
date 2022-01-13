@@ -2,10 +2,24 @@
   import { createEventDispatcher } from 'svelte'
 
   const dispatcher = createEventDispatcher()
+
+  function openSidebar () {
+    let event = new Event('open_sidebar')
+    document.dispatchEvent(event)
+  }
 </script>
 
-<div>
+<div class="pt-2">
   <div class="flex w-full mt-5 mx-5">
+    <div class="block md:hidden relative">
+      <button type="submit" class="mt-3 mr-4" on:click={openSidebar} >
+        <svg class="h-6 w-6 fill-current" viewBox="0 0 24 30" fill="none" stroke="#000" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="0" y1="5" x2="24" y2="5"></line>
+          <line x1="0" y1="13" x2="24" y2="13"></line>
+          <line x1="0" y1="20" x2="24" y2="20"></line>
+        </svg>
+      </button>
+    </div>
     <div class="hidden md:block relative w-2/3 text-gray-600">
       <input type="search" name="serch" placeholder="Search songs..." class="bg-white w-full h-10 px-5 pr-10 rounded-full text-sm ">
       <button type="submit" class="absolute right-0 top-0 mt-3 mr-4">

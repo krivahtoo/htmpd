@@ -1,10 +1,26 @@
 <script>
+  import { onMount } from 'svelte'
   import { queue, stats, browse } from './../stores.js'
+  
+  let open = false
+
+  onMount(() => {
+    document.addEventListener('open_sidebar', () => {
+      open = true
+    })
+  });
+
+  function close() {
+    open = false
+  }
 </script>
 
-<div class="hidden md:flex flex-col w-1/5 bg-white rounded-r-3xl overflow-hidden">
-  <div class="flex items-center justify-center h-20 shadow-md">
-    <h1 class="text-3xl uppercase text-indigo-500">htmpd</h1>
+<div class="{ open ? 'fixed' : 'hidden' } md:relative z-30 md:z-auto md:flex flex-col h-full md:h-auto w-full md:w-1/5 bg-white md:rounded-r-3xl overflow-hidden">
+  <div class="flex items-center md:justify-center h-20 shadow-md">
+    <h1 class="text-3xl pl-5 md:pl-0 uppercase text-indigo-500">htmpd</h1>
+    <svg on:click={close} class="md:hidden ml-auto mr-5 fill-current text-gray-700 w-6 h-6 cursor-pointer" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18">
+      <path d="M14.53 4.53l-1.06-1.06L9 7.94 4.53 3.47 3.47 4.53 7.94 9l-4.47 4.47 1.06 1.06L9 10.06l4.47 4.47 1.06-1.06L10.06 9z"/>
+    </svg>
   </div>
   <ul class="flex flex-col py-4">
     <li>
