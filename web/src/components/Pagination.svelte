@@ -58,10 +58,10 @@
 
 </script>
 
-<nav class="ml-10 pb-48">
-  <ul class="inline-flex space-x-2">
+<nav class="ml-5 pb-48">
+  <ul class="flex flex-wrap md:inline-flex">
     {#if page > 1}
-      <li>
+      <li class="flex ml-3">
         <a href={ getPath(page-1) }
           class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-3xl">
           Previous
@@ -69,20 +69,20 @@
       </li>
     {/if}
     {#each pages as val}
-      <li>
+      <li class="flex ml-3">
         <a href={ getPath(val.page) }
           class="bg-white border { val.current ? 'border-indigo-500 text-indigo-500' : 'border-gray-300 text-gray-500' } hover:bg-gray-100 hover:text-gray-700 rounded-3xl leading-tight py-2 px-3 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
           { val.page }
         </a>
       </li>
       {#if val.page === 1 && page > (offset + 2)}
-        <li>
+        <li class="ml-3">
           <span class="text-gray-300 py-2 px-1">
             &hellip;
           </span>
         </li>
       {:else if val.page === (page + offset) && last_page > (val.page + 1) }
-        <li>
+        <li class="ml-3">
           <span class="text-gray-300 py-2 px-1">
             &hellip;
           </span>
@@ -90,7 +90,7 @@
       {/if}
     {/each}
     {#if last_page > page}
-      <li>
+      <li class="flex ml-3">
         <a href={ getPath(page+1) }
           class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-3xl">
           Next
