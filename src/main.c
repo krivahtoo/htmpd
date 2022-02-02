@@ -13,29 +13,23 @@
 #include <ctype.h>
 
 #define MG_ENABLE_LOG 1
-#define SARG_NO_FILE
-#include "args.h"
 #include "mongoose.h"
 #include "server.h"
 #include "mpd_client.h"
 #include "utils.h"
+#include "config.h"
 
 #include "version.h"
 
-static sarg_opt opts[] = {
-  {"h", "help", "show help text", BOOL, NULL},
-  {"v", "verbose", "increase verbosity", BOOL, NULL},
-  {"H", "host", "server host", STRING, NULL},
-  {"p", "port", "server port", STRING, NULL},
-  {"d", "dir", "root directory", STRING, NULL},
-  {NULL, NULL, NULL, INT, NULL}
-};
 
-static const char *s_listen_on = "ws://0.0.0.0:8000";
-static const char *s_stream_url = "http://localhost:8008";
-static const char *s_web_root = "./dist";
+const char *cfg_path = NULL;
+
+struct config configs;
+
+struct arg args;
 
 static bool run = true;
+static char program[] = "htmpd";
 
 static void sig_handler(int sig_num) {
   // (void) sig_num;
@@ -45,7 +39,7 @@ static void sig_handler(int sig_num) {
 
 static void forward_request(struct mg_http_message *hm, struct mg_connection *c) {
   size_t i, max = sizeof(hm->headers) / sizeof(hm->headers[0]);
-  struct mg_str host = mg_url_host(s_stream_url);
+  struct mg_str host = mg_url_host(configs.stream_url);
   mg_printf(c, "%.*s\r\n",
             (int) (hm->proto.ptr + hm->proto.len - hm->message.ptr),
             hm->message.ptr);
@@ -82,11 +76,11 @@ static void server_handler(struct mg_connection *c, int ev, void *ev_data, void 
     } else if (mg_http_match_uri(hm, "/rest")) {
       mg_http_reply(c, 200, "", "{\"result\": \"%s\"}\n", "Hello World");
     } else if (mg_http_match_uri(hm, "/stream.mp3")) {
-      c2 = mg_connect(c->mgr, s_stream_url, fn, c);
+      c2 = mg_connect(c->mgr, configs.stream_url, fn, c);
       if (c2 == NULL) {
         mg_error(c, "Cannot create backend connection");
       } else {
-        if (mg_url_is_ssl(s_stream_url)) {
+        if (mg_url_is_ssl(configs.stream_url)) {
           struct mg_tls_opts opts = {.ca = "ca.pem"};
           mg_tls_init(c2, &opts);
         }
@@ -126,7 +120,7 @@ static void server_handler(struct mg_connection *c, int ev, void *ev_data, void 
     } else {
 #ifdef USE_DYNAMIC_WEB_PAGE
       // Serve static files from web_root.
-      struct mg_http_serve_opts opts = {.root_dir = s_web_root};
+      struct mg_http_serve_opts opts = {.root_dir = configs.web_root};
       mg_http_serve_dir(c, ev_data, &opts);
 #else
       (void) s_web_root;
@@ -143,69 +137,43 @@ static void server_handler(struct mg_connection *c, int ev, void *ev_data, void 
   (void) fn_data;
 }
 
-int main(int argc, const char **argv)
-{
-  sarg_root root;
-  sarg_result *res;
+int main(int argc, const char **argv) {
   struct mg_mgr mgr;  // Event manager
   time_t current_timer = 0, last_timer = 0;
   char *verbose = malloc(sizeof(char) * 2);
+  char *s_listen_on = malloc(sizeof(char) * 25);
 
-  int ret = sarg_init(&root, opts, "htmpd");
-  assert(ret == SARG_ERR_SUCCESS);
+  config_defaults();
+  args_defaults();
+  config_load(NULL);
+  args_load(argc, argv);
 
-  ret = sarg_parse(&root, argv, argc);
-  if(ret != SARG_ERR_SUCCESS) {
-    printf("Parsing args failed\n");
-    sarg_help_print(&root);
-    sarg_destroy(&root);
-    return -1;
-  }
-
-  // check if help flag was set
-  ret = sarg_get(&root, "help", &res);
-  if(res->bool_val) {
-    printf("htmpd %s\nA lightweight modern MPD web client\n\n", VERSION);
-    sarg_help_print(&root);
-    sarg_destroy(&root);
+  if (args.help) {
+    printf("%s %s\nA lightweight modern MPD web client\n\n", program, VERSION);
+    args_help();
     return 0;
   }
-
-  // check for verbosity
-  ret = sarg_get(&root, "v", &res);
-  assert(ret == SARG_ERR_SUCCESS);
-
-  sprintf(verbose, "%d", res->count);
-
-  ret = sarg_get(&root, "host", &res);
-  assert(ret == SARG_ERR_SUCCESS);
-  if(res->count > 0) {
-    printf("Server listening on: %s\n", res->str_val);
-    s_listen_on = res->str_val;
+  if (args.version) {
+    printf("%s %s\n", program, VERSION);
+    return 0;
   }
+  sprintf(verbose, "%d", args.verbose);
 
-  ret = sarg_get(&root, "dir", &res);
-  assert(ret == SARG_ERR_SUCCESS);
-  if(res->count > 0) {
-    printf("Serve dir: %s\n", res->str_val);
-    s_web_root = res->str_val;
-  }
-
-  sarg_destroy(&root);
+  sprintf(s_listen_on, "ws://%s:%s", configs.web_host, configs.web_port);
 
   // Set up signal handler 
   signal(SIGINT, sig_handler);
 
   // Initialize mpd client
-  strcpy(mpd.host, "127.0.0.1");
-  mpd.port = 6600;
+  strcpy(mpd.host, configs.host);
+  mpd.port = strtol(configs.port, 0, 10);
   mpd.conn = NULL;
 
   mg_log_set(verbose);
   mg_mgr_init(&mgr);  // Initialise event manager
   LOG(LL_INFO, ("Starting web server on port %s", s_listen_on));
 #ifdef USE_DYNAMIC_WEB_PAGE
-  LOG(LL_INFO, ("Serving files from %s", s_web_root));
+  LOG(LL_INFO, ("Serving files from %s", configs.web_root));
 #endif
   mg_http_listen(&mgr, s_listen_on, server_handler, NULL);  // Create HTTP listener
   while (run) {
@@ -218,6 +186,7 @@ int main(int argc, const char **argv)
   }
   mpd_disconnect();
   mg_mgr_free(&mgr);
+  config_free();
   free(verbose);
 
   return 0;
