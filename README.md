@@ -1,7 +1,7 @@
 <img width="50" src="./web/public/logo.svg">
 
 # htmpd
- > Warning: htmpd is still under development
+ > Warning: htmpd is still under development you might experience bugs or incomplete features
 
 lightweight [MPD](https://www.musicpd.org/) (Music Player Daemon) web client written in C, utilizing Websockets, svelte and tailwind
 
