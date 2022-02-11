@@ -104,9 +104,7 @@ static void server_handler(struct mg_connection *c, int ev, void *ev_data, void 
         LOG(LL_INFO, ("Serving cached %s", image));
         mg_http_serve_file(c, hm, image, &opts);
       } else {
-        char *music_dir = malloc(strlen(getenv("HOME")) + strlen("/Music"));
-        sprintf(music_dir, "%s/Music", getenv("HOME"));
-        GdkPixbuf *pixbuf = retrieve_artwork(music_dir, out);
+        GdkPixbuf *pixbuf = retrieve_artwork(configs.music_dir, out);
         if (pixbuf) {
           pixbuf = gdk_pixbuf_scale_simple(pixbuf, 500, 500, GDK_INTERP_BILINEAR);
           gdk_pixbuf_save(pixbuf, image, "png", NULL, NULL);
@@ -114,7 +112,6 @@ static void server_handler(struct mg_connection *c, int ev, void *ev_data, void 
         } else {
           mg_http_reply(c, 404, "", "Not found\n");
         }
-        free(music_dir);
       }
       free(image);
     } else {

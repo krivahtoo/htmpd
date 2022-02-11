@@ -24,7 +24,8 @@ int argoat_increment_pars(struct argoat* args, char* flag, char* pars) {
     }
 
     return 0;
-  } else { // flagged pars
+  // flagged pars
+  } else {
     return 1;
   }
 }
@@ -92,8 +93,7 @@ void argoat_sacrifice(struct argoat* args,
 
   // saves pars exceeding the limit
   if (pars_count > max) {
-    for(int k = max; k < pars_count; ++k)
-    {
+    for(int k = max; k < pars_count; ++k) {
       // leverages the pars incrementation side-effects
       argoat_increment_pars(args, NULL, pars[k]);
     }

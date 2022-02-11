@@ -1,0 +1,42 @@
+.\" Manpage for htmpd.
+.TH man 1 "2 Feb 2022" "1.2.3" "htmpd manual"
+.SH NAME
+htmpd \- A standalone and lightweight MPD web client
+.SH SYNOPSIS
+htmpd [OPTION]...
+.SH DESCRIPTION
+lightweight MPD (Music Player Daemon) web client written in C, utilizing Websockets, svelte and tailwind
+
+Inspired by ympd (https://www.ympd.org/) but with modern ui
+.SH OPTIONS
+.TP
+\fB\-H\fR, \fB\-\-web\-host=HOSTNAME\fR 
+hostname to bind to (default: 0.0.0.0)
+.TP
+\fB\-P\fR, \fB\-\-web\-port=PORT\fR
+port to bind to (default: 8000)
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+display this help and exit
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+increase verbosity
+.TP
+\fB\-V\fR, \fB\-\-version\fR
+output version information and exit
+.TP
+\fB\-p\fR, \fB\-\-mpd\-port=PORT\fR
+port to connect to (default: 6600)
+.TP
+\fB\-\-mpd\-host=HOSTNAME\fR
+hostname to connect to (default: 127.0.0.1)
+.SH NOTE
+Options overide config.
+.TP
+Config file is located in:
+\fB~/.config/htmpd/config.ini\fR
+.SH BUGS
+No known bugs.
+.SH AUTHOR
+Noah Too (too@krivah.xyz)
+

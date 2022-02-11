@@ -70,8 +70,8 @@ void handle_main(void* data, char** pars, const int pars_count) {
 
 void config_load(char *cfg_path) {
   if (cfg_path == NULL) {
-  cfg_path = malloc(strlen(getenv("HOME")) + strlen(CONFIG_PATH) + strlen("/"));
-  sprintf(cfg_path, "%s/%s", getenv("HOME"), CONFIG_PATH);
+    cfg_path = malloc(strlen(getenv("HOME")) + strlen(CONFIG_PATH) + strlen("/"));
+    sprintf(cfg_path, "%s/%s", getenv("HOME"), CONFIG_PATH);
   }
   struct configator_param map_no_section[] = {
     {"host", &configs.host, handle_str},
@@ -142,14 +142,17 @@ void args_help() {
 }
 
 void config_defaults() {
+  char* music_path = malloc(strlen(getenv("HOME")) + strlen("/Music"));
+  sprintf(music_path, "%s/%s", getenv("HOME"), "Music");
   configs.host = strdup("127.0.0.1");
   configs.port = strdup("6600");
-  configs.music_dir = strdup("~/Music");
+  configs.music_dir = strdup(music_path);
   configs.password = strdup("");
   configs.web_root = strdup("./dist");
   configs.stream_url = strdup("http://localhost:8008");
   configs.web_host = strdup("0.0.0.0");
   configs.web_port = strdup("8000");
+  free(music_path);
 }
 
 void args_defaults() {
