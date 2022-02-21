@@ -68,9 +68,11 @@ int main(int argc, const char **argv) {
   mg_log_set(verbose);
   mg_mgr_init(&mgr); // Initialise event manager
   LOG(LL_INFO, ("Starting web server on port %s", s_listen_on));
-#ifdef USE_DYNAMIC_WEB_PAGE
-  LOG(LL_INFO, ("Serving files from %s", configs.web_root));
-#endif
+  if (args.serve) {
+    LOG(LL_INFO, ("Serving files from %s", configs.web_root));
+  } else {
+    LOG(LL_INFO, ("Serving embedded files"));
+  }
   mg_http_listen(&mgr, s_listen_on, server_handler,
                  NULL); // Create HTTP listener
   while (run) {

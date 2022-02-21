@@ -2,12 +2,14 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "config.h"
 #include "mongoose.h"
 #include "server.h"
 #include "utils.h"
 
+// Helper function to forward stream requests to mpd
 static void forward_request(struct mg_http_message *hm,
                             struct mg_connection *c) {
   size_t i, max = sizeof(hm->headers) / sizeof(hm->headers[0]);
@@ -27,6 +29,7 @@ static void forward_request(struct mg_http_message *hm,
                  (int)hm->uri.len, hm->uri.ptr));
 }
 
+// Helper function to send embeded files
 void send_embedded_file(struct mg_connection *c,
                         const struct embedded_file *file) {
   mg_printf(c,
@@ -53,6 +56,8 @@ static void http_callback(struct mg_connection *c, struct mg_http_message *hm) {
   }
 }
 
+// Helper function to handle mpd stream connection and forward to client,
+// acting as a reverse proxy server
 static void fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data) {
   if (ev == MG_EV_READ && fn_data != NULL) {
     // All incoming data from the backend, forward to the client
@@ -62,6 +67,7 @@ static void fn(struct mg_connection *c, int ev, void *ev_data, void *fn_data) {
   (void)ev_data;
 }
 
+// Entry point for http requests
 void server_handler(struct mg_connection *c, int ev, void *ev_data,
                     void *fn_data) {
   struct mg_connection *c2 = fn_data;
@@ -117,13 +123,13 @@ void server_handler(struct mg_connection *c, int ev, void *ev_data,
       }
       free(image);
     } else {
-#ifdef USE_DYNAMIC_WEB_PAGE
-      // Serve static files from web_root.
-      struct mg_http_serve_opts opts = {.root_dir = configs.web_root};
-      mg_http_serve_dir(c, ev_data, &opts);
-#else
-      http_callback(c, hm);
-#endif
+      if (args.serve) {
+        // Serve static files from web_root.
+        struct mg_http_serve_opts opts = {.root_dir = configs.web_root};
+        mg_http_serve_dir(c, ev_data, &opts);
+      } else {
+        http_callback(c, hm);
+      }
     }
   } else if (ev == MG_EV_WS_MSG) {
     struct mg_ws_message *wm = (struct mg_ws_message *)ev_data;
