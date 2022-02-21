@@ -73,4 +73,3 @@ void mpd_disconnect();
 void mpd_callback(struct mg_connection *c, struct mg_ws_message *wm);
 
 #endif
-

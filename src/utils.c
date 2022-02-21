@@ -2,40 +2,45 @@
 
 #include "utils.h"
 
-static char * get_file_extension(const char *filename){
+static char *get_file_extension(const char *filename) {
   char *dot = strrchr(filename, '.');
-  if(!dot || dot == filename) return "";
+  if (!dot || dot == filename)
+    return "";
   return dot + 1;
 }
 
-static char * guess_audio_type(const char *filename){
+static char *guess_audio_type(const char *filename) {
   char *ext = get_file_extension(filename);
-  if(!strcmp(ext, "mp3")) return "audio/mpeg";
-  if(!strcmp(ext, "ogg")) return "audio/ogg";
-  if(!strcmp(ext, "wav")) return "audio/wav";
+  if (!strcmp(ext, "mp3"))
+    return "audio/mpeg";
+  if (!strcmp(ext, "ogg"))
+    return "audio/ogg";
+  if (!strcmp(ext, "wav"))
+    return "audio/wav";
   return "";
 }
 
 // Decode a uri string
 void urldecode(char *dst, const char *src) {
   char a, b;
-  while(*src) {
-    if((*src == '%') && ((a = src[1]) && (b = src[2])) && (isxdigit(a) && isxdigit(b))) {
-      if(a >= 'a')
-        a -= 'a'-'A';
-      if(a >= 'A')
+  while (*src) {
+    if ((*src == '%') && ((a = src[1]) && (b = src[2])) &&
+        (isxdigit(a) && isxdigit(b))) {
+      if (a >= 'a')
+        a -= 'a' - 'A';
+      if (a >= 'A')
         a -= ('A' - 10);
       else
         a -= '0';
-      if(b >= 'a')
-        b -= 'a'-'A';
-      if(b >= 'A')
+      if (b >= 'a')
+        b -= 'a' - 'A';
+      if (b >= 'A')
         b -= ('A' - 10);
       else
         b -= '0';
-      *dst++ = 16*a+b;
-      src+=3;
-    } else if(*src == '+') {
+      *dst++ = 16 * a + b;
+      src += 3;
+    } else if (*src == '+') {
       *dst++ = ' ';
       src++;
     } else {
@@ -46,17 +51,17 @@ void urldecode(char *dst, const char *src) {
 }
 
 // Get audio album art from file
-GdkPixbuf * retrieve_artwork(const char * music_dir, const char * uri) {
-  GdkPixbuf * pixbuf = NULL;
-  char * uri_path = NULL, * imagefile = NULL;
-  DIR * dir;
-  struct dirent * entry;
+GdkPixbuf *retrieve_artwork(const char *music_dir, const char *uri) {
+  GdkPixbuf *pixbuf = NULL;
+  char *uri_path = NULL, *imagefile = NULL;
+  DIR *dir;
+  struct dirent *entry;
   regex_t regex;
 
   unsigned int i;
   const char *file_mime;
-  AVFormatContext * fmt_ctx = NULL;
-  GdkPixbufLoader * loader;
+  AVFormatContext *fmt_ctx = NULL;
+  GdkPixbufLoader *loader;
 
   if ((uri_path = malloc(strlen(music_dir) + strlen(uri) + 2)) == NULL) {
     LOG(LL_ERROR, ("malloc failed"));
@@ -98,7 +103,8 @@ GdkPixbuf * retrieve_artwork(const char * music_dir, const char * uri) {
       }
 
       if ((pixbuf = gdk_pixbuf_loader_get_pixbuf(loader)) == NULL) {
-        LOG(LL_ERROR, ("Could not get pixbuf from loader for file %s", uri_path));
+        LOG(LL_ERROR,
+            ("Could not get pixbuf from loader for file %s", uri_path));
         goto image;
       }
 
@@ -111,7 +117,8 @@ image:
   // cut the file name from path for current directory
   *strrchr(uri_path, '/') = 0;
   if ((dir = opendir(uri_path)) == NULL) {
-    LOG(LL_ERROR, ("Could not open directory %s : %s", uri_path, strerror(errno)));
+    LOG(LL_ERROR,
+        ("Could not open directory %s : %s", uri_path, strerror(errno)));
     goto fail;
   }
   if (regcomp(&regex, REGEX_ARTWORK, REG_NOSUB + REG_ICASE) != 0) {
@@ -125,7 +132,8 @@ image:
 
     if (regexec(&regex, entry->d_name, 0, NULL, 0) == 0) {
       // found an image file
-      if ((imagefile = malloc(strlen(uri_path) + strlen(entry->d_name) + 2)) == NULL) {
+      if ((imagefile = malloc(strlen(uri_path) + strlen(entry->d_name) + 2)) ==
+          NULL) {
         LOG(LL_ERROR, ("malloc failed"));
         goto fail;
       }
@@ -154,4 +162,3 @@ done:
   free(uri_path);
   return pixbuf;
 }
-

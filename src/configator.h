@@ -10,9 +10,9 @@
 #endif
 
 struct configator_param {
-  char* key;
-  void* data;
-  void (*handle)(void* data, char** value, const int pars_count);
+  char *key;
+  void *data;
+  void (*handle)(void *data, char **value, const int pars_count);
 };
 
 struct configator {
@@ -21,13 +21,13 @@ struct configator {
   char value[CONFIGATOR_MAX_LINE];
   uint16_t current_section;
 
-  struct configator_param** map;
-  struct configator_param* sections;
+  struct configator_param **map;
+  struct configator_param *sections;
 
-  uint16_t* map_len;
+  uint16_t *map_len;
   uint16_t sections_len;
 };
 
-int configator(struct configator* config, const char* path);
+int configator(struct configator *config, const char *path);
 
 #endif
