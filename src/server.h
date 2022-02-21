@@ -12,7 +12,8 @@ struct embedded_file {
   size_t size;
 };
 
+void server_handler(struct mg_connection *c, int ev, void *ev_data,
+                           void *fn_data);
 const struct embedded_file *find_embedded_file(const char *name);
-void http_callback(struct mg_connection *c, struct mg_http_message *hm);
 
 #endif
