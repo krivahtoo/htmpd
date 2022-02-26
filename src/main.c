@@ -22,7 +22,6 @@
 const char *cfg_path = NULL;
 
 struct config configs;
-
 struct arg args;
 
 static bool run = true;
