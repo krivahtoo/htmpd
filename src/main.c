@@ -56,8 +56,10 @@ int main(int argc, const char **argv) {
 
   sprintf(s_listen_on, "ws://%s:%s", configs.web_host, configs.web_port);
 
-  // Set up signal handler
+  // Set up signal handlers
   signal(SIGINT, sig_handler);
+  signal(SIGHUP, sig_handler);
+  signal(SIGTERM, sig_handler);
 
   // Initialize mpd client
   strcpy(mpd.host, configs.host);

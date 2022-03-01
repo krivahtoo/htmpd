@@ -55,8 +55,13 @@ const char *_get_key(struct mg_str json, const char *key) {
 
 size_t _get_number(struct mg_str json, const char *key) {
   const char *val = _get_key(json, key);
-  if (val != NULL)
-    return (size_t)strtol(val, (char **)NULL, 10);
+  if (val != NULL) {
+    if (strncmp(val, "true", 4) == 0) {
+      return 1;
+    } else {
+      return (size_t)strtol(val, (char **)NULL, 10);
+    }
+  }
   return 0;
 }
 
@@ -93,10 +98,7 @@ void send_queue(struct mg_connection *c, size_t offset, size_t limit) {
     loc_limit = (size_t)limit;
   }
   if (!mpd_send_list_queue_meta(mpd.conn)) {
-    jim_set_string(&jim, "type", "error");
-    jim_set_string(&jim, "message", mpd_connection_get_error_message(mpd.conn));
-
-    mpd.conn_state = MPD_FAILURE;
+    FILL_MPD_ERROR();
     goto send_queue;
   }
   jim_member_key(&jim, "queue");
@@ -159,16 +161,12 @@ void send_status(struct mg_connection *c) {
   jim_object_begin(&jim);
 
   if (!mpd_send_status(mpd.conn)) {
-    jim_set_string(&jim, "type", "error");
-    jim_set_string(&jim, "message", mpd_connection_get_error_message(mpd.conn));
-    mpd.conn_state = MPD_FAILURE;
+    FILL_MPD_ERROR();
     goto send_status;
   }
   struct mpd_status *status = mpd_recv_status(mpd.conn);
   if (status == NULL) {
-    jim_set_string(&jim, "type", "error");
-    jim_set_string(&jim, "message", mpd_connection_get_error_message(mpd.conn));
-    mpd.conn_state = MPD_FAILURE;
+    FILL_MPD_ERROR();
     goto send_status;
   }
   jim_set_integer(&jim, "volume", mpd_status_get_volume(status));
@@ -230,9 +228,7 @@ void send_output(struct mg_connection *c) {
 
   jim_object_begin(&jim);
   if (!mpd_send_outputs(mpd.conn)) {
-    jim_set_string(&jim, "type", "error");
-    jim_set_string(&jim, "message", mpd_connection_get_error_message(mpd.conn));
-    mpd.conn_state = MPD_FAILURE;
+    FILL_MPD_ERROR();
     goto send_outputs;
   }
   struct mpd_output *output;
@@ -284,9 +280,7 @@ void send_browse(struct mg_connection *c, const char *uri, size_t offset,
   }
 
   if (!mpd_send_list_meta(mpd.conn, uri)) {
-    jim_set_string(&jim, "type", "error");
-    jim_set_string(&jim, "message", mpd_connection_get_error_message(mpd.conn));
-    mpd.conn_state = MPD_FAILURE;
+    FILL_MPD_ERROR();
     goto send_browse;
   }
   struct mpd_entity *entity;
@@ -402,9 +396,7 @@ void send_stats(struct mg_connection *c) {
 
     mpd_stats_free(stats);
   } else {
-    jim_set_string(&jim, "type", "error");
-    jim_set_string(&jim, "message", "Could not send stats");
-    mpd.conn_state = MPD_FAILURE;
+    FILL_MPD_ERROR();
   }
   char *version = malloc(sizeof(char) * 10 + 1);
   sprintf(version, "%d.%d.%d", mpd.version[0], mpd.version[1], mpd.version[2]);
@@ -440,8 +432,7 @@ void send_channels(struct mg_connection *c) {
     jim_array_end(&jim);
     jim_set_string(&jim, "type", "channels");
   } else {
-    jim_set_string(&jim, "type", "error");
-    jim_set_string(&jim, "message", "Could not send channels");
+    FILL_MPD_ERROR();
   }
   jim_object_end(&jim);
   if (jim.error != JIM_OK) {
@@ -665,16 +656,16 @@ void mpd_callback(struct mg_connection *c, struct mg_ws_message *wm) {
     mpd_run_toggle_output(mpd.conn, (int)_get_number(wm->data, "id"));
     break;
   case MPD_TOGGLE_RANDOM:
-    mpd_run_random(mpd.conn, _get_key(wm->data, "mode"));
+    mpd_run_random(mpd.conn, (int)_get_number(wm->data, "mode"));
     break;
   case MPD_TOGGLE_REPEAT:
-    mpd_run_repeat(mpd.conn, _get_key(wm->data, "mode"));
+    mpd_run_repeat(mpd.conn, (int)_get_number(wm->data, "mode"));
     break;
   case MPD_TOGGLE_SINGLE:
-    mpd_run_single(mpd.conn, _get_key(wm->data, "mode"));
+    mpd_run_single(mpd.conn, (int)_get_number(wm->data, "mode"));
     break;
   case MPD_TOGGLE_CONSUME:
-    mpd_run_consume(mpd.conn, _get_key(wm->data, "mode"));
+    mpd_run_consume(mpd.conn, (int)_get_number(wm->data, "mode"));
     break;
   case MPD_TOGGLE_CROSSFADE:
     mpd_run_crossfade(mpd.conn, (int)_get_number(wm->data, "seconds"));

@@ -7,6 +7,11 @@
 
 #include "mongoose.h"
 
+#define FILL_MPD_ERROR()                                                       \
+  jim_set_string(&jim, "type", "error");                                       \
+  jim_set_string(&jim, "message", mpd_connection_get_error_message(mpd.conn)); \
+  mpd.conn_state = MPD_FAILURE;
+
 enum mpd_cmds {
   MPD_GET_QUEUE,
   MPD_GET_BROWSE,
