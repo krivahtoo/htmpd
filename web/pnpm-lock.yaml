@@ -1,7 +1,7 @@
 lockfileVersion: 5.3
 
 specifiers:
-  '@rollup/plugin-commonjs': 16.0.0
+  '@rollup/plugin-commonjs': 21.1.0
   '@rollup/plugin-node-resolve': 10.0.0
   autoprefixer: 10.4.2
   colorthief: 2.3.2
@@ -23,7 +23,7 @@ dependencies:
   svelte-spa-router: 3.2.0
 
 devDependencies:
-  '@rollup/plugin-commonjs': 16.0.0_rollup@2.70.2
+  '@rollup/plugin-commonjs': 21.1.0_rollup@2.70.2
   '@rollup/plugin-node-resolve': 10.0.0_rollup@2.70.2
   autoprefixer: 10.4.2_postcss@8.4.6
   postcss: 8.4.6
@@ -82,11 +82,11 @@ packages:
       fastq: 1.13.0
     dev: true
 
-  /@rollup/plugin-commonjs/16.0.0_rollup@2.70.2:
-    resolution: {integrity: sha512-LuNyypCP3msCGVQJ7ki8PqYdpjfEkE/xtFa5DqlF+7IBD0JsfMZ87C58heSwIMint58sAUZbt3ITqOmdQv/dXw==}
+  /@rollup/plugin-commonjs/21.1.0_rollup@2.70.2:
+    resolution: {integrity: sha512-6ZtHx3VHIp2ReNNDxHjuUml6ur+WcQ28N1yHgCQwsbNkQg2suhxGMDQGJOn/KuDxKtd1xuZP5xSTwBA4GQ8hbA==}
     engines: {node: '>= 8.0.0'}
     peerDependencies:
-      rollup: ^2.30.0
+      rollup: ^2.38.3
     dependencies:
       '@rollup/pluginutils': 3.1.0_rollup@2.70.2
       commondir: 1.0.1
