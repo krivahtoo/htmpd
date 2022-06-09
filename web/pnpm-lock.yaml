@@ -6,7 +6,7 @@ specifiers:
   autoprefixer: 10.4.2
   colorthief: 2.3.2
   postcss: 8.4.14
-  postcss-load-config: 3.1.3
+  postcss-load-config: 3.1.4
   rollup: 2.75.6
   rollup-plugin-css-only: 3.1.0
   rollup-plugin-livereload: 2.0.5
@@ -27,7 +27,7 @@ devDependencies:
   '@rollup/plugin-node-resolve': 10.0.0_rollup@2.75.6
   autoprefixer: 10.4.2_postcss@8.4.14
   postcss: 8.4.14
-  postcss-load-config: 3.1.3
+  postcss-load-config: 3.1.4_postcss@8.4.14
   rollup: 2.75.6
   rollup-plugin-css-only: 3.1.0_rollup@2.75.6
   rollup-plugin-livereload: 2.0.5
@@ -35,7 +35,7 @@ devDependencies:
   rollup-plugin-svelte: 7.1.0_rollup@2.75.6+svelte@3.48.0
   rollup-plugin-terser: 7.0.2_rollup@2.75.6
   svelte: 3.48.0
-  svelte-preprocess: 4.10.7_d25d17d8799136686ef1fc6cf128c4e3
+  svelte-preprocess: 4.10.7_0d8b80d879b3164ac8135cc9abf0d616
   tailwindcss: 2.2.19_362004c07ac26539ad25bfbfa9847069
 
 packages:
@@ -597,7 +597,7 @@ packages:
     dependencies:
       cssnano-preset-default: 5.1.8_postcss@8.4.14
       is-resolvable: 1.1.0
-      lilconfig: 2.0.4
+      lilconfig: 2.0.5
       postcss: 8.4.14
       yaml: 1.10.2
     dev: true
@@ -1135,8 +1135,8 @@ packages:
       verror: 1.10.0
     dev: false
 
-  /lilconfig/2.0.4:
-    resolution: {integrity: sha512-bfTIN7lEsiooCocSISTWXkiWJkRqtL9wYtYy+8EK3Y41qh3mpwPU0ycTOgjdY9ErwXCc8QyrQp82bdL0Xkm9yA==}
+  /lilconfig/2.0.5:
+    resolution: {integrity: sha512-xaYmXZtTHPAw5m+xLN8ab9C+3a8YmV3asNSPOATITbtwrfbwaLJj8h66H1WMIpALCkqsIzK3h7oQ+PdX+LQ9Eg==}
     engines: {node: '>=10'}
     dev: true
 
@@ -1493,16 +1493,20 @@ packages:
       postcss: 8.4.14
     dev: true
 
-  /postcss-load-config/3.1.3:
-    resolution: {integrity: sha512-5EYgaM9auHGtO//ljHH+v/aC/TQ5LHXtL7bQajNAUBKUVKiYE8rYpFms7+V26D9FncaGe2zwCoPQsFKb5zF/Hw==}
+  /postcss-load-config/3.1.4_postcss@8.4.14:
+    resolution: {integrity: sha512-6DiM4E7v4coTE4uzA8U//WhtPwyhiim3eyjEMFCnUpzbrkK9wJHgKDT2mR+HbtSrd/NubVaYTOpSpjUl8NQeRg==}
     engines: {node: '>= 10'}
     peerDependencies:
+      postcss: '>=8.0.9'
       ts-node: '>=9.0.0'
     peerDependenciesMeta:
+      postcss:
+        optional: true
       ts-node:
         optional: true
     dependencies:
-      lilconfig: 2.0.4
+      lilconfig: 2.0.5
+      postcss: 8.4.14
       yaml: 1.10.2
     dev: true
 
@@ -1994,7 +1998,7 @@ packages:
       p-queue: 6.6.2
       pify: 5.0.0
       postcss: 8.4.14
-      postcss-load-config: 3.1.3
+      postcss-load-config: 3.1.4_postcss@8.4.14
       postcss-modules: 4.2.2_postcss@8.4.14
       promise.series: 0.2.0
       resolve: 1.20.0
@@ -2178,7 +2182,7 @@ packages:
       has-flag: 4.0.0
     dev: true
 
-  /svelte-preprocess/4.10.7_d25d17d8799136686ef1fc6cf128c4e3:
+  /svelte-preprocess/4.10.7_0d8b80d879b3164ac8135cc9abf0d616:
     resolution: {integrity: sha512-sNPBnqYD6FnmdBrUmBCaqS00RyCsCpj2BG58A1JBswNF7b0OKviwxqVrOL/CKyJrLSClrSeqQv5BXNg2RUbPOw==}
     engines: {node: '>= 9.11.2'}
     requiresBuild: true
@@ -2224,7 +2228,7 @@ packages:
       detect-indent: 6.1.0
       magic-string: 0.25.7
       postcss: 8.4.14
-      postcss-load-config: 3.1.3
+      postcss-load-config: 3.1.4_postcss@8.4.14
       sorcery: 0.10.0
       strip-indent: 3.0.0
       svelte: 3.48.0
@@ -2287,7 +2291,7 @@ packages:
       object-hash: 2.2.0
       postcss: 8.4.14
       postcss-js: 3.0.3
-      postcss-load-config: 3.1.3
+      postcss-load-config: 3.1.4_postcss@8.4.14
       postcss-nested: 5.0.6_postcss@8.4.14
       postcss-selector-parser: 6.0.6
       postcss-value-parser: 4.2.0
