@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte'
   import { querystring } from 'svelte-spa-router'
-  import SongList from '../components/SongList.svelte'
+  import List from '../components/browse/List.svelte'
 
   let search = new URLSearchParams('page=1&limit=20')
 
@@ -30,9 +30,9 @@
   }
 </script>
 
-<section class="antialiased bg-gray-100 text-gray-600 h-screen px-4">
+<section class="antialiased bg-gray-100 text-gray-600 h-5/6 pb-48 md:px-4 overflow-auto">
   <div class="flex flex-col justify-center">
-    <SongList type="browse" />
+    <List />
   </div>
 </section>
 
