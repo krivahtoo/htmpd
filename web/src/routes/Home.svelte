@@ -30,8 +30,8 @@
   }
 </script>
 
-<section class="antialiased bg-gray-100 text-gray-600 h-screen md:px-4">
-  <div class="flex flex-col justify-center">
+<section class="antialiased bg-gray-100 text-gray-600 h-auto pb-10 md:px-4 overflow-auto">
+  <div class="flex flex-col justify-center overflow-auto">
     <SongList />
   </div>
 </section>

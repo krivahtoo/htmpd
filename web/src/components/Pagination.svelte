@@ -58,7 +58,7 @@
 
 </script>
 
-<nav class="ml-5 pb-48">
+<nav class="ml-5 pb-5">
   <ul class="flex flex-wrap md:inline-flex">
     {#if page > 1}
       <li class="flex ml-3">

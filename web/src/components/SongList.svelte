@@ -57,8 +57,8 @@
   }
 </script>
 
-<div class="w-full max-h-screen mt-5 mb-20 max-w-6xl mx-auto bg-white shadow-sm rounded-3xl overflow-y-auto relative">
-  <header class="flex sticky top-0 px-5 py-5 z-10 border-b border-gray-100 bg-gray-50 overflow-x-hidden">
+<div class="w-full max-h-full mt-5 mb-20 max-w-6xl mx-auto bg-white shadow-sm rounded-3xl overflow-hidden relative">
+  <header class="flex sticky top-0 px-5 py-5 z-10 border-b border-gray-100 bg-gray-50">
     <h2 class="font-semibold text-gray-800">Songs</h2>
     <span class="ml-auto text-sm text-gray-400">
     {#if type == 'browse'}
@@ -68,7 +68,7 @@
     {/if}
     </span>
   </header>
-  <table class="border-collapse table-auto w-full mb-5 whitespace-no-wrap bg-white table-striped relative">
+  <table class="border-collapse table-auto w-full mb-5 whitespace-no-wrap bg-white table-striped relative overflow-auto">
     <thead class="text-xs sticky top-1 font-semibold uppercase text-gray-400 bg-gray-50">
       <tr>
         <th class="p-1">Id</th>
@@ -83,7 +83,7 @@
         </th>
       </tr>
     </thead>
-    <tbody class="text-sm divide-y divide-gray-100">
+    <tbody class="text-sm divide-y divide-gray-100 overflow-auto">
       {#each songs as song}
         <Song {song} {type} />
       {/each}
