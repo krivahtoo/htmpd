@@ -182,6 +182,11 @@ void send_status(struct mg_connection *c) {
   jim_set_integer(&jim, "crossfade", mpd_status_get_crossfade(status));
   jim_set_integer(&jim, "bitrate", mpd_status_get_kbit_rate(status));
   jim_set_integer(&jim, "current", mpd_status_get_song_id(status));
+  jim_set_integer(&jim, "mixrampdb", mpd_status_get_mixrampdb(status));
+  jim_set_integer(&jim, "mixrampdelay", mpd_status_get_mixrampdelay(status));
+  jim_set_integer(&jim, "nextId", mpd_status_get_next_song_id(status));
+  jim_set_integer(&jim, "nextPos", mpd_status_get_next_song_pos(status));
+  jim_set_integer(&jim, "version", mpd_status_get_queue_version(status));
 
   if (mpd_status_get_state(status) == MPD_STATE_PLAY ||
       mpd_status_get_state(status) == MPD_STATE_PAUSE) {
