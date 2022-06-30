@@ -1,11 +1,9 @@
 CFLAGS=-Wall -Wextra -pedantic -ggdb
 CFLAGS += $(shell pkg-config --cflags gdk-pixbuf-2.0)
 CFLAGS += $(shell pkg-config --cflags libavformat)
-CFLAGS += -DUSE_DYNAMIC_WEB_PAGE
-LIBS=-lm
-LIBS += $(shell pkg-config --libs libmpdclient)
-LIBS += $(shell pkg-config --libs gdk-pixbuf-2.0)
-LIBS += $(shell pkg-config --libs libavformat)
+LIBS = $(shell pkg-config --libs libmpdclient)
+LIBS+= $(shell pkg-config --libs gdk-pixbuf-2.0)
+LIBS+= $(shell pkg-config --libs libavformat)
 FILES = $(shell find ./src -name "*.c")
 VERSION=$(shell git describe --long --tags)
 

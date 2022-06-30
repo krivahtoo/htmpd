@@ -20,9 +20,10 @@ struct config {
 };
 
 struct arg {
-  char *help;
-  int *verbose;
-  int *version;
+  bool *help;
+  int8_t *verbose;
+  bool *version;
+  bool *serve;
 };
 
 extern struct config configs;

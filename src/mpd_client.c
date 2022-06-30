@@ -1,15 +1,68 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
 
 #include "mpd_client.h"
-#include "parson.h"
+#include "jim.h"
+#include "mongoose.h"
+#include "parser.h"
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 struct t_mpd mpd;
 
-enum mpd_cmds get_cmd_id(JSON_Object *obj) {
-  return (int)json_object_get_number(obj, "cmd_id");
+typedef struct {
+  size_t size;
+  char *data;
+} Buffer;
+
+void buffer_free(Buffer *buffer) {
+  free(buffer->data);
+  buffer->data = NULL;
+  buffer->size = 0;
+}
+
+size_t buffer_write(const void *ptr, size_t size, size_t nmemb, Buffer *sink) {
+  size_t new_size = sink->size + size * nmemb;
+  sink->data = realloc(sink->data, new_size + 1);
+  if (sink->data == NULL) {
+    return 0;
+  }
+  memcpy(sink->data + sink->size, ptr, size * nmemb);
+  sink->size = new_size;
+  sink->data[sink->size] = '\0';
+  return size * nmemb;
+}
+
+int get_cmd_id(const char *json, size_t len) {
+  size_t vlen = 0;
+  const char *val = parse("cmd_id", 6, json, len, &vlen);
+  if (vlen == 0) {
+    return -1;
+  }
+  int i = (int)strtol(val, (char **)NULL, 10);
+  return i;
+}
+
+const char *_get_key(struct mg_str json, const char *key) {
+  size_t vlen = 0;
+  const char *val = parse(key, strlen(key), json.ptr, json.len, &vlen);
+  if (vlen == 0) {
+    return NULL;
+  }
+  return val;
+}
+
+size_t _get_number(struct mg_str json, const char *key) {
+  const char *val = _get_key(json, key);
+  if (val != NULL) {
+    if (strncmp(val, "true", 4) == 0) {
+      return 1;
+    } else {
+      return (size_t)strtol(val, (char **)NULL, 10);
+    }
+  }
+  return 0;
 }
 
 /*** Get title or fallback to uri ***/
@@ -24,16 +77,20 @@ char *get_title(struct mpd_song const *song) {
   return str;
 }
 
-void send_queue(struct mg_connection *c, double offset, double limit) {
+void send_queue(struct mg_connection *c, size_t offset, size_t limit) {
   struct mpd_entity *entity;
   size_t loc_limit;
   size_t i = 0;
   size_t j = 0;
   unsigned long totalTime = 0;
-  JSON_Value *data = json_value_init_object();
-  JSON_Value *songs_val = json_value_init_array();
-  JSON_Object *obj = json_value_get_object(data);
-  JSON_Array *songs = json_value_get_array(songs_val);
+
+  Buffer buffer = {.data = NULL, .size = 0};
+  Jim jim = {
+      .sink = &buffer,
+      .write = (Jim_Write)buffer_write,
+  };
+
+  jim_object_begin(&jim);
 
   if (limit == 0) {
     loc_limit = 20;
@@ -41,34 +98,33 @@ void send_queue(struct mg_connection *c, double offset, double limit) {
     loc_limit = (size_t)limit;
   }
   if (!mpd_send_list_queue_meta(mpd.conn)) {
-    json_object_set_string(obj, "type", "error");
-    json_object_set_string(obj, "message",
-                           mpd_connection_get_error_message(mpd.conn));
-    mpd.conn_state = MPD_FAILURE;
+    FILL_MPD_ERROR();
     goto send_queue;
   }
+  jim_member_key(&jim, "queue");
+  jim_array_begin(&jim);
   while ((entity = mpd_recv_entity(mpd.conn)) != NULL) {
     if (i >= offset && j < loc_limit) {
       const struct mpd_song *curr_song = mpd_entity_get_song(entity);
       if (mpd_entity_get_type(entity) == MPD_ENTITY_TYPE_SONG) {
         curr_song = mpd_entity_get_song(entity);
-        JSON_Value *song = json_value_init_object();
-        JSON_Object *songObj = json_value_get_object(song);
-        json_object_set_string(songObj, "title", get_title(curr_song));
-        json_object_set_string(songObj, "artist",
-                               mpd_song_get_tag(curr_song, MPD_TAG_ARTIST, 0));
-        json_object_set_string(songObj, "album",
-                               mpd_song_get_tag(curr_song, MPD_TAG_ALBUM, 0));
-        json_object_set_string(songObj, "genre",
-                               mpd_song_get_tag(curr_song, MPD_TAG_GENRE, 0));
-        json_object_set_string(songObj, "uri", mpd_song_get_uri(curr_song));
-        json_object_set_number(songObj, "duration",
-                               mpd_song_get_duration(curr_song));
-        json_object_set_number(songObj, "id", mpd_song_get_id(curr_song));
-        json_object_set_number(songObj, "pos", mpd_song_get_pos(curr_song));
-        json_object_set_string(songObj, "year",
-                               mpd_song_get_tag(curr_song, MPD_TAG_DATE, 0));
-        json_array_append_value(songs, song);
+
+        jim_object_begin(&jim);
+        jim_set_string(&jim, "title", get_title(curr_song));
+        jim_set_string(&jim, "artist",
+                       mpd_song_get_tag(curr_song, MPD_TAG_ARTIST, 0));
+        jim_set_string(&jim, "album",
+                       mpd_song_get_tag(curr_song, MPD_TAG_ALBUM, 0));
+        jim_set_string(&jim, "genre",
+                       mpd_song_get_tag(curr_song, MPD_TAG_GENRE, 0));
+        jim_set_string(&jim, "uri", mpd_song_get_uri(curr_song));
+        jim_set_integer(&jim, "duration", mpd_song_get_duration(curr_song));
+        jim_set_integer(&jim, "id", mpd_song_get_id(curr_song));
+        jim_set_integer(&jim, "pos", mpd_song_get_pos(curr_song));
+        jim_set_string(&jim, "year",
+                       mpd_song_get_tag(curr_song, MPD_TAG_DATE, 0));
+        jim_object_end(&jim);
+
         totalTime += mpd_song_get_duration(curr_song);
       }
       j++;
@@ -76,122 +132,138 @@ void send_queue(struct mg_connection *c, double offset, double limit) {
     mpd_entity_free(entity);
     i++;
   }
-  json_object_set_string(obj, "type", "queue");
-  json_object_set_number(obj, "limit", loc_limit);
-  json_object_set_number(obj, "offset", offset);
-  json_object_set_number(obj, "total", i);
-  json_object_set_number(obj, "totalTime", totalTime);
-  json_object_set_value(obj, "queue", songs_val);
+  jim_array_end(&jim);
+  jim_set_string(&jim, "type", "queue");
+  jim_set_integer(&jim, "limit", loc_limit);
+  jim_set_integer(&jim, "offset", offset);
+  jim_set_integer(&jim, "total", i);
+  jim_set_integer(&jim, "totalTime", totalTime);
 
 send_queue : {
-  char *json_str = json_serialize_to_string(data);
-  mg_ws_send(c, json_str, strlen(json_str), WEBSOCKET_OP_TEXT);
+  jim_object_end(&jim);
+  if (jim.error != JIM_OK) {
+    fprintf(stderr, "ERROR: could not serialize json properly: %s\n",
+            jim_error_string(jim.error));
+    return;
+  }
+  mg_ws_send(c, buffer.data, buffer.size, WEBSOCKET_OP_TEXT);
 }
-  json_value_free(data);
+  buffer_free(&buffer);
 }
 
 void send_status(struct mg_connection *c) {
-  JSON_Value *data = json_value_init_object();
-  JSON_Object *obj = json_value_get_object(data);
-  JSON_Value *song_val = json_value_init_object();
-  JSON_Object *song = json_value_get_object(song_val);
+  Buffer buffer = {.data = NULL, .size = 0};
+  Jim jim = {
+      .sink = &buffer,
+      .write = (Jim_Write)buffer_write,
+  };
+
+  jim_object_begin(&jim);
 
   if (!mpd_send_status(mpd.conn)) {
-    json_object_set_string(obj, "type", "error");
-    json_object_set_string(obj, "message",
-                           mpd_connection_get_error_message(mpd.conn));
-    mpd.conn_state = MPD_FAILURE;
+    FILL_MPD_ERROR();
     goto send_status;
   }
   struct mpd_status *status = mpd_recv_status(mpd.conn);
   if (status == NULL) {
-    json_object_set_string(obj, "type", "error");
-    json_object_set_string(obj, "message",
-                           mpd_connection_get_error_message(mpd.conn));
-    mpd.conn_state = MPD_FAILURE;
+    FILL_MPD_ERROR();
     goto send_status;
   }
-  json_object_set_number(obj, "volume", mpd_status_get_volume(status));
-  json_object_set_number(obj, "repeat", mpd_status_get_repeat(status));
-  json_object_set_number(obj, "random", mpd_status_get_random(status));
-  json_object_set_number(obj, "single", mpd_status_get_single(status));
-  json_object_set_number(obj, "consume", mpd_status_get_consume(status));
-  json_object_set_number(obj, "playlistLength",
-                         mpd_status_get_queue_length(status));
-  json_object_set_number(obj, "playlistSong", mpd_status_get_song_pos(status));
-  json_object_set_number(obj, "state", mpd_status_get_state(status));
-  json_object_set_number(obj, "elapsedTime", mpd_status_get_elapsed_ms(status));
-  json_object_set_number(obj, "totalTime", mpd_status_get_total_time(status));
-  json_object_set_number(obj, "crossfade", mpd_status_get_crossfade(status));
-  json_object_set_number(obj, "bitrate", mpd_status_get_kbit_rate(status));
-  json_object_set_number(obj, "current", mpd_status_get_song_id(status));
+  jim_set_integer(&jim, "volume", mpd_status_get_volume(status));
+  jim_set_integer(&jim, "repeat", mpd_status_get_repeat(status));
+  jim_set_integer(&jim, "random", mpd_status_get_random(status));
+  jim_set_integer(&jim, "single", mpd_status_get_single(status));
+  jim_set_integer(&jim, "consume", mpd_status_get_consume(status));
+  jim_set_integer(&jim, "playlistLength", mpd_status_get_queue_length(status));
+  jim_set_integer(&jim, "playlistSong", mpd_status_get_song_pos(status));
+  jim_set_integer(&jim, "state", mpd_status_get_state(status));
+  jim_set_integer(&jim, "elapsedTime", mpd_status_get_elapsed_ms(status));
+  jim_set_integer(&jim, "totalTime", mpd_status_get_total_time(status));
+  jim_set_integer(&jim, "crossfade", mpd_status_get_crossfade(status));
+  jim_set_integer(&jim, "bitrate", mpd_status_get_kbit_rate(status));
+  jim_set_integer(&jim, "current", mpd_status_get_song_id(status));
+  jim_set_integer(&jim, "mixrampdb", mpd_status_get_mixrampdb(status));
+  jim_set_integer(&jim, "mixrampdelay", mpd_status_get_mixrampdelay(status));
+  jim_set_integer(&jim, "nextId", mpd_status_get_next_song_id(status));
+  jim_set_integer(&jim, "nextPos", mpd_status_get_next_song_pos(status));
+  jim_set_integer(&jim, "version", mpd_status_get_queue_version(status));
 
   if (mpd_status_get_state(status) == MPD_STATE_PLAY ||
       mpd_status_get_state(status) == MPD_STATE_PAUSE) {
     const struct mpd_song *curr_song = mpd_run_current_song(mpd.conn);
     if (curr_song != NULL) {
-      json_object_set_string(song, "title", get_title(curr_song));
-      json_object_set_string(song, "artist",
-                             mpd_song_get_tag(curr_song, MPD_TAG_ARTIST, 0));
-      json_object_set_string(song, "album",
-                             mpd_song_get_tag(curr_song, MPD_TAG_ALBUM, 0));
-      json_object_set_string(song, "genre",
-                             mpd_song_get_tag(curr_song, MPD_TAG_GENRE, 0));
-      json_object_set_number(song, "duration",
-                             mpd_song_get_duration(curr_song));
-      json_object_set_number(song, "id", mpd_song_get_id(curr_song));
-      json_object_set_number(song, "pos", mpd_song_get_pos(curr_song));
-      json_object_set_string(song, "uri", mpd_song_get_uri(curr_song));
-      json_object_set_string(song, "year",
-                             mpd_song_get_tag(curr_song, MPD_TAG_DATE, 0));
+      jim_member_key(&jim, "song");
+      jim_object_begin(&jim);
+      jim_set_string(&jim, "title", get_title(curr_song));
+      jim_set_string(&jim, "artist",
+                     mpd_song_get_tag(curr_song, MPD_TAG_ARTIST, 0));
+      jim_set_string(&jim, "album",
+                     mpd_song_get_tag(curr_song, MPD_TAG_ALBUM, 0));
+      jim_set_string(&jim, "genre",
+                     mpd_song_get_tag(curr_song, MPD_TAG_GENRE, 0));
+      jim_set_integer(&jim, "duration", mpd_song_get_duration(curr_song));
+      jim_set_integer(&jim, "id", mpd_song_get_id(curr_song));
+      jim_set_integer(&jim, "pos", mpd_song_get_pos(curr_song));
+      jim_set_string(&jim, "uri", mpd_song_get_uri(curr_song));
+      jim_set_string(&jim, "year",
+                     mpd_song_get_tag(curr_song, MPD_TAG_DATE, 0));
+      jim_object_end(&jim);
     }
   }
-  json_object_set_string(obj, "type", "status");
-  json_object_set_value(obj, "song", song_val);
+  jim_set_string(&jim, "type", "status");
 
 send_status : {
-  char *json_str = json_serialize_to_string(data);
-  mg_ws_send(c, json_str, strlen(json_str), WEBSOCKET_OP_TEXT);
+  jim_object_end(&jim);
+  if (jim.error != JIM_OK) {
+    fprintf(stderr, "ERROR: could not serialize json properly: %s\n",
+            jim_error_string(jim.error));
+    return;
+  }
+  mg_ws_send(c, buffer.data, buffer.size, WEBSOCKET_OP_TEXT);
 }
-  json_value_free(data);
+  buffer_free(&buffer);
 }
 
 void send_output(struct mg_connection *c) {
-  JSON_Value *data = json_value_init_object();
-  JSON_Object *obj = json_value_get_object(data);
-  JSON_Value *outputs_val = json_value_init_array();
-  JSON_Array *outputs = json_value_get_array(outputs_val);
+  Buffer buffer = {.data = NULL, .size = 0};
+  Jim jim = {
+      .sink = &buffer,
+      .write = (Jim_Write)buffer_write,
+  };
 
+  jim_object_begin(&jim);
   if (!mpd_send_outputs(mpd.conn)) {
-    json_object_set_string(obj, "type", "error");
-    json_object_set_string(obj, "message",
-                           mpd_connection_get_error_message(mpd.conn));
-    mpd.conn_state = MPD_FAILURE;
+    FILL_MPD_ERROR();
     goto send_outputs;
   }
   struct mpd_output *output;
+  jim_member_key(&jim, "outputs");
+  jim_array_begin(&jim);
   while ((output = mpd_recv_output(mpd.conn)) != NULL) {
-    JSON_Value *output_val = json_value_init_object();
-    JSON_Object *output_obj = json_value_get_object(output_val);
-    json_object_set_number(output_obj, "id", mpd_output_get_id(output));
-    json_object_set_string(output_obj, "name", mpd_output_get_name(output));
-    json_object_set_number(output_obj, "enabled",
-                           mpd_output_get_enabled(output));
-    json_array_append_value(outputs, output_val);
+    jim_object_begin(&jim);
+    jim_set_integer(&jim, "id", mpd_output_get_id(output));
+    jim_set_string(&jim, "name", mpd_output_get_name(output));
+    jim_set_integer(&jim, "enabled", mpd_output_get_enabled(output));
+    jim_object_end(&jim);
     mpd_output_free(output);
   }
-  json_object_set_string(obj, "type", "outputs");
-  json_object_set_value(obj, "outputs", outputs_val);
+  jim_array_end(&jim);
+  jim_set_string(&jim, "type", "outputs");
 
 send_outputs : {
-  char *json_str = json_serialize_to_string(data);
-  mg_ws_send(c, json_str, strlen(json_str), WEBSOCKET_OP_TEXT);
+  jim_object_end(&jim);
+  if (jim.error != JIM_OK) {
+    fprintf(stderr, "ERROR: could not serialize json properly: %s\n",
+            jim_error_string(jim.error));
+    return;
+  }
+  mg_ws_send(c, buffer.data, buffer.size, WEBSOCKET_OP_TEXT);
 }
-  json_value_free(data);
+  buffer_free(&buffer);
 }
 
-void send_browse(struct mg_connection *c, const char *uri, double offset,
-                 double limit) {
+void send_browse(struct mg_connection *c, const char *uri, size_t offset,
+                 size_t limit) {
   size_t loc_limit = (size_t)limit;
   size_t i = 0;
   size_t j = 0;
@@ -200,26 +272,25 @@ void send_browse(struct mg_connection *c, const char *uri, double offset,
     int files;
     int playlists;
   } count = {0, 0, 0};
-  JSON_Value *data = json_value_init_object();
-  JSON_Object *obj = json_value_get_object(data);
-  JSON_Value *dirs_val = json_value_init_array();
-  JSON_Array *dirs = json_value_get_array(dirs_val);
-  JSON_Value *files_val = json_value_init_array();
-  JSON_Array *files = json_value_get_array(files_val);
-  JSON_Value *playlists_val = json_value_init_array();
-  JSON_Array *playlists = json_value_get_array(playlists_val);
+  Buffer buffer = {.data = NULL, .size = 0};
+  Jim jim = {
+      .sink = &buffer,
+      .write = (Jim_Write)buffer_write,
+  };
+
+  jim_object_begin(&jim);
 
   if (loc_limit <= 0) {
     loc_limit = 20;
   }
 
   if (!mpd_send_list_meta(mpd.conn, uri)) {
-    json_object_set_string(obj, "type", "error");
-    json_object_set_string(obj, "message", "Could not send directory list");
-    mpd.conn_state = MPD_FAILURE;
+    FILL_MPD_ERROR();
     goto send_browse;
   }
   struct mpd_entity *entity;
+  jim_member_key(&jim, "browse");
+  jim_array_begin(&jim);
   while ((entity = mpd_recv_entity(mpd.conn)) != NULL) {
     switch (mpd_entity_get_type(entity)) {
     case MPD_ENTITY_TYPE_DIRECTORY:
@@ -237,44 +308,47 @@ void send_browse(struct mg_connection *c, const char *uri, double offset,
     if (i >= offset && j < loc_limit) {
       switch (mpd_entity_get_type(entity)) {
       case MPD_ENTITY_TYPE_DIRECTORY: {
-        JSON_Value *dir_val = json_value_init_object();
-        JSON_Object *dir = json_value_get_object(dir_val);
-        json_object_set_string(
-            dir, "name",
+        jim_object_begin(&jim);
+        jim_set_string(&jim, "type", "directory");
+        jim_set_string(
+            &jim, "path",
             mpd_directory_get_path(mpd_entity_get_directory(entity)));
-        json_array_append_value(dirs, dir_val);
+        jim_set_integer(
+            &jim, "last_modified",
+            mpd_directory_get_last_modified(mpd_entity_get_directory(entity)));
+        jim_object_end(&jim);
       } break;
       case MPD_ENTITY_TYPE_SONG: {
-        JSON_Value *file_val = json_value_init_object();
-        JSON_Object *file = json_value_get_object(file_val);
-        json_object_set_string(file, "title",
-                               get_title(mpd_entity_get_song(entity)));
-        json_object_set_string(
-            file, "artist",
+        jim_object_begin(&jim);
+        jim_set_string(&jim, "type", "file");
+        jim_set_string(&jim, "title", get_title(mpd_entity_get_song(entity)));
+        jim_set_string(
+            &jim, "artist",
             mpd_song_get_tag(mpd_entity_get_song(entity), MPD_TAG_ARTIST, 0));
-        json_object_set_string(
-            file, "album",
+        jim_set_string(
+            &jim, "album",
             mpd_song_get_tag(mpd_entity_get_song(entity), MPD_TAG_ALBUM, 0));
-        json_object_set_string(
-            file, "genre",
+        jim_set_string(
+            &jim, "genre",
             mpd_song_get_tag(mpd_entity_get_song(entity), MPD_TAG_GENRE, 0));
-        json_object_set_number(
-            file, "duration",
-            mpd_song_get_duration(mpd_entity_get_song(entity)));
-        json_object_set_string(file, "uri",
-                               mpd_song_get_uri(mpd_entity_get_song(entity)));
-        json_object_set_string(
-            file, "year",
+        jim_set_integer(&jim, "duration",
+                        mpd_song_get_duration(mpd_entity_get_song(entity)));
+        jim_set_string(&jim, "uri",
+                       mpd_song_get_uri(mpd_entity_get_song(entity)));
+        jim_set_string(
+            &jim, "year",
             mpd_song_get_tag(mpd_entity_get_song(entity), MPD_TAG_DATE, 0));
-        json_array_append_value(files, file_val);
+        jim_object_end(&jim);
       } break;
       case MPD_ENTITY_TYPE_PLAYLIST: {
-        JSON_Value *playlist_val = json_value_init_object();
-        JSON_Object *playlist = json_value_get_object(playlist_val);
-        json_object_set_string(
-            playlist, "name",
-            mpd_playlist_get_path(mpd_entity_get_playlist(entity)));
-        json_array_append_value(playlists, playlist_val);
+        jim_object_begin(&jim);
+        jim_set_string(&jim, "type", "playlist");
+        jim_set_string(&jim, "path",
+                       mpd_playlist_get_path(mpd_entity_get_playlist(entity)));
+        jim_set_integer(
+            &jim, "last_modified",
+            mpd_playlist_get_last_modified(mpd_entity_get_playlist(entity)));
+        jim_object_end(&jim);
       } break;
       default:
         break;
@@ -284,79 +358,105 @@ void send_browse(struct mg_connection *c, const char *uri, double offset,
     mpd_entity_free(entity);
     i++;
   }
-  json_object_set_string(obj, "type", "browse");
-  json_object_set_number(obj, "limit", loc_limit);
-  json_object_set_number(obj, "offset", offset);
-  json_object_set_number(obj, "total", i);
-  json_object_set_number(obj, "dirsCount", count.dirs);
-  json_object_set_number(obj, "filesCount", count.files);
-  json_object_set_number(obj, "playlistsCount", count.playlists);
-  json_object_set_value(obj, "dirs", dirs_val);
-  json_object_set_value(obj, "files", files_val);
-  json_object_set_value(obj, "playlists", playlists_val);
+  jim_array_end(&jim);
+  jim_set_string(&jim, "type", "browse");
+  jim_set_integer(&jim, "limit", loc_limit);
+  jim_set_integer(&jim, "offset", offset);
+  jim_set_integer(&jim, "total", i);
+  jim_set_integer(&jim, "dirsCount", count.dirs);
+  jim_set_integer(&jim, "filesCount", count.files);
+  jim_set_integer(&jim, "playlistsCount", count.playlists);
 
 send_browse : {
-  char *json_str = json_serialize_to_string(data);
-  mg_ws_send(c, json_str, strlen(json_str), WEBSOCKET_OP_TEXT);
+  jim_object_end(&jim);
+  if (jim.error != JIM_OK) {
+    fprintf(stderr, "ERROR: could not serialize json properly: %s\n",
+            jim_error_string(jim.error));
+    return;
+  }
+  mg_ws_send(c, buffer.data, buffer.size, WEBSOCKET_OP_TEXT);
 }
-  json_value_free(data);
+  buffer_free(&buffer);
 }
 
 void send_stats(struct mg_connection *c) {
-  JSON_Value *data = json_value_init_object();
-  JSON_Object *obj = json_value_get_object(data);
+  Buffer buffer = {.data = NULL, .size = 0};
+  Jim jim = {
+      .sink = &buffer,
+      .write = (Jim_Write)buffer_write,
+  };
+
+  jim_object_begin(&jim);
   struct mpd_stats *stats = mpd_run_stats(mpd.conn);
   if (stats != NULL) {
-    json_object_set_string(obj, "type", "stats");
-    json_object_set_number(obj, "artistsCount",
-                           mpd_stats_get_number_of_artists(stats));
-    json_object_set_number(obj, "songsCount",
-                           mpd_stats_get_number_of_songs(stats));
-    json_object_set_number(obj, "albumsCount",
-                           mpd_stats_get_number_of_albums(stats));
-    json_object_set_number(obj, "uptime", mpd_stats_get_uptime(stats));
-    json_object_set_number(obj, "playTime", mpd_stats_get_play_time(stats));
-    json_object_set_number(obj, "dbPlayTime",
-                           mpd_stats_get_db_play_time(stats));
-    json_object_set_number(obj, "dbUpdateTime",
-                           mpd_stats_get_db_update_time(stats));
+    jim_set_string(&jim, "type", "stats");
+    jim_set_integer(&jim, "artistsCount",
+                    mpd_stats_get_number_of_artists(stats));
+    jim_set_integer(&jim, "songsCount", mpd_stats_get_number_of_songs(stats));
+    jim_set_integer(&jim, "albumsCount", mpd_stats_get_number_of_albums(stats));
+    jim_set_integer(&jim, "uptime", mpd_stats_get_uptime(stats));
+    jim_set_integer(&jim, "playTime", mpd_stats_get_play_time(stats));
+    jim_set_integer(&jim, "dbPlayTime", mpd_stats_get_db_play_time(stats));
+    jim_set_integer(&jim, "dbUpdateTime", mpd_stats_get_db_update_time(stats));
+
     mpd_stats_free(stats);
   } else {
-    json_object_set_string(obj, "type", "error");
-    json_object_set_string(obj, "message", "Could not send stats");
-    mpd.conn_state = MPD_FAILURE;
+    FILL_MPD_ERROR();
   }
-  char *json_str = json_serialize_to_string(data);
+  char *version = malloc(sizeof(char) * 10 + 1);
+  sprintf(version, "%d.%d.%d", mpd.version[0], mpd.version[1], mpd.version[2]);
+  jim_set_string(&jim, "version", version);
+  free(version);
 
-  mg_ws_send(c, json_str, strlen(json_str), WEBSOCKET_OP_TEXT);
-  json_value_free(data);
+  jim_object_end(&jim);
+  if (jim.error != JIM_OK) {
+    fprintf(stderr, "ERROR: could not serialize json properly: %s\n",
+            jim_error_string(jim.error));
+    return;
+  }
+  mg_ws_send(c, buffer.data, buffer.size, WEBSOCKET_OP_TEXT);
+  buffer_free(&buffer);
 }
 
 void send_channels(struct mg_connection *c) {
-  JSON_Value *data = json_value_init_object();
-  JSON_Object *obj = json_value_get_object(data);
+  Buffer buffer = {.data = NULL, .size = 0};
+  Jim jim = {
+      .sink = &buffer,
+      .write = (Jim_Write)buffer_write,
+  };
+
+  jim_object_begin(&jim);
   if (mpd_send_channels(mpd.conn)) {
-    JSON_Value *channels_val = json_value_init_array();
-    JSON_Array *channels = json_value_get_array(channels_val);
     struct mpd_pair *channel;
+    jim_member_key(&jim, "channels");
+    jim_array_begin(&jim);
     while ((channel = mpd_recv_channel_pair(mpd.conn)) != NULL) {
-      json_array_append_string(channels, channel->value);
+      jim_string(&jim, channel->value);
       mpd_return_pair(mpd.conn, channel);
     }
-    json_object_set_string(obj, "type", "channels");
-    json_object_set_value(obj, "channels", channels_val);
+    jim_array_end(&jim);
+    jim_set_string(&jim, "type", "channels");
   } else {
-    json_object_set_string(obj, "type", "error");
-    json_object_set_string(obj, "message", "Could not send channels");
+    FILL_MPD_ERROR();
   }
-  char *json_str = json_serialize_to_string(data);
-
-  mg_ws_send(c, json_str, strlen(json_str), WEBSOCKET_OP_TEXT);
-  json_value_free(data);
+  jim_object_end(&jim);
+  if (jim.error != JIM_OK) {
+    fprintf(stderr, "ERROR: could not serialize json properly: %s\n",
+            jim_error_string(jim.error));
+    return;
+  }
+  mg_ws_send(c, buffer.data, buffer.size, WEBSOCKET_OP_TEXT);
+  buffer_free(&buffer);
 }
 
 void mpd_poll(struct mg_mgr *mgr) {
   struct mg_connection *c, *tmp;
+  Buffer buffer = {.data = NULL, .size = 0};
+  Jim jim = {
+      .sink = &buffer,
+      .write = (Jim_Write)buffer_write,
+  };
+
   for (c = mgr->conns; c != NULL; c = tmp) {
     tmp = c->next;
     if (mpd.conn == NULL) {
@@ -367,14 +467,18 @@ void mpd_poll(struct mg_mgr *mgr) {
         LOG(LL_ERROR, ("MPD connection failed: %s",
                        mpd_connection_get_error_message(mpd.conn)));
         if (c->is_websocket) {
-          JSON_Value *data = json_value_init_object();
-          JSON_Object *obj = json_value_get_object(data);
-          json_object_set_string(obj, "type", "error");
-          json_object_set_string(obj, "message",
-                                 mpd_connection_get_error_message(mpd.conn));
-          char *json_str = json_serialize_to_string(data);
-          mg_ws_send(c, json_str, strlen(json_str), WEBSOCKET_OP_TEXT);
-          json_value_free(data);
+          jim_object_begin(&jim);
+          jim_set_string(&jim, "type", "error");
+          jim_set_string(&jim, "message",
+                         mpd_connection_get_error_message(mpd.conn));
+          jim_object_end(&jim);
+          if (jim.error != JIM_OK) {
+            fprintf(stderr, "ERROR: could not serialize json properly: %s\n",
+                    jim_error_string(jim.error));
+            return;
+          }
+          mg_ws_send(c, buffer.data, buffer.size, WEBSOCKET_OP_TEXT);
+          buffer_free(&buffer);
         }
         // try recovering
         if (!mpd_connection_clear_error(mpd.conn)) {
@@ -410,13 +514,21 @@ void mpd_poll(struct mg_mgr *mgr) {
           if (!c->is_websocket || c == NULL) {
             continue;
           }
-          JSON_Value *data = json_value_init_object();
-          JSON_Object *obj = json_value_get_object(data);
-          json_object_set_string(obj, "type", "connected");
-          // json_object_set_string(obj, "version", mpd.version);
-          char *msg = json_serialize_to_string(data);
-          mg_ws_send(c, msg, strlen(msg), WEBSOCKET_OP_TEXT);
-          json_value_free(data);
+          char *version = malloc(sizeof(char) * 10 + 1);
+
+          sprintf(version, "%d.%d.%d", mpd.version[0], mpd.version[1],
+                  mpd.version[2]);
+          jim_object_begin(&jim);
+          jim_set_string(&jim, "type", "connected");
+          jim_set_string(&jim, "version", version);
+          jim_object_end(&jim);
+          if (jim.error != JIM_OK) {
+            fprintf(stderr, "ERROR: could not serialize json properly: %s\n",
+                    jim_error_string(jim.error));
+            return;
+          }
+          mg_ws_send(c, buffer.data, buffer.size, WEBSOCKET_OP_TEXT);
+          buffer_free(&buffer);
         }
       }
       break;
@@ -428,6 +540,7 @@ void mpd_poll(struct mg_mgr *mgr) {
       send_status(c);
       send_output(c);
       send_stats(c);
+      send_channels(c);
       break;
     case MPD_FAILURE:
       LOG(LL_ERROR, ("MPD connection failed"));
@@ -446,17 +559,20 @@ void mpd_poll(struct mg_mgr *mgr) {
 }
 
 void mpd_callback(struct mg_connection *c, struct mg_ws_message *wm) {
-  JSON_Value *data = json_parse_string(wm->data.ptr);
-  JSON_Object *obj = json_value_get_object(data);
-  enum mpd_cmds cmd_id = get_cmd_id(obj);
+  enum mpd_cmds cmd_id = get_cmd_id(wm->data.ptr, wm->data.len);
+  Buffer buffer = {.data = NULL, .size = 0};
+  Jim jim = {
+      .sink = &buffer,
+      .write = (Jim_Write)buffer_write,
+  };
+
   if (mpd.conn_state != MPD_CONNECTED) {
     LOG(LL_ERROR, ("MPD is not connected"));
-    JSON_Value *dt = json_value_init_object();
-    JSON_Object *dt_obj = json_value_get_object(dt);
-    json_object_set_string(dt_obj, "type", "disconnected");
-    char *json_str = json_serialize_to_string(dt);
-    mg_ws_send(c, json_str, strlen(json_str), WEBSOCKET_OP_TEXT);
-    json_value_free(dt);
+    jim_object_begin(&jim);
+    jim_set_string(&jim, "type", "disconnected");
+    jim_object_end(&jim);
+    mg_ws_send(c, buffer.data, buffer.size, WEBSOCKET_OP_TEXT);
+    buffer_free(&buffer);
     return;
   }
   switch (cmd_id) {
@@ -464,26 +580,24 @@ void mpd_callback(struct mg_connection *c, struct mg_ws_message *wm) {
     if (mpd.conn_state == MPD_CONNECTED) {
       if (mpd_run_update(mpd.conn, NULL)) {
         LOG(LL_DEBUG, ("MPD update database"));
-        JSON_Value *dt = json_value_init_object();
-        JSON_Object *dt_obj = json_value_get_object(dt);
-        json_object_set_string(dt_obj, "type", "update");
-        json_object_set_boolean(dt_obj, "success", true);
-        char *msg = json_serialize_to_string(dt);
-        mg_ws_send(c, msg, strlen(msg), WEBSOCKET_OP_TEXT);
-        json_value_free(dt);
+        jim_object_begin(&jim);
+        jim_set_string(&jim, "type", "update");
+        jim_set_bool(&jim, "success", true);
+        jim_object_end(&jim);
+        mg_ws_send(c, buffer.data, buffer.size, WEBSOCKET_OP_TEXT);
+        buffer_free(&buffer);
         mpd.conn_state = MPD_RECONNECT;
       } else {
         LOG(LL_ERROR, ("MPD update database failed: %s",
                        mpd_connection_get_error_message(mpd.conn)));
-        JSON_Value *dt = json_value_init_object();
-        JSON_Object *dt_obj = json_value_get_object(dt);
-        json_object_set_string(dt_obj, "type", "update");
-        json_object_set_boolean(dt_obj, "success", false);
-        json_object_set_string(dt_obj, "message",
-                               mpd_connection_get_error_message(mpd.conn));
-        char *msg = json_serialize_to_string(dt);
-        mg_ws_send(c, msg, strlen(msg), WEBSOCKET_OP_TEXT);
-        json_value_free(dt);
+        jim_object_begin(&jim);
+        jim_set_string(&jim, "type", "update");
+        jim_set_bool(&jim, "success", false);
+        jim_set_string(&jim, "message",
+                       mpd_connection_get_error_message(mpd.conn));
+        jim_object_end(&jim);
+        mg_ws_send(c, buffer.data, buffer.size, WEBSOCKET_OP_TEXT);
+        buffer_free(&buffer);
         mpd.conn_state = MPD_FAILURE;
       }
     }
@@ -492,8 +606,8 @@ void mpd_callback(struct mg_connection *c, struct mg_ws_message *wm) {
     send_channels(c);
     break;
   case MPD_SEND_MESSAGE:
-    mpd_run_send_message(mpd.conn, json_object_get_string(obj, "channel"),
-                         json_object_get_string(obj, "text"));
+    mpd_run_send_message(mpd.conn, _get_key(wm->data, "channel"),
+                         _get_key(wm->data, "text"));
     break;
   case MPD_SET_PLAY:
     mpd_run_play(mpd.conn);
@@ -511,119 +625,120 @@ void mpd_callback(struct mg_connection *c, struct mg_ws_message *wm) {
     mpd_run_previous(mpd.conn);
     break;
   case MPD_SET_VOLUME:
-    mpd_run_set_volume(mpd.conn, json_object_get_number(obj, "volume"));
+    mpd_run_set_volume(mpd.conn, (int)_get_number(wm->data, "volume"));
     break;
   case MPD_SET_SEEK:
-    mpd_run_seek_id(mpd.conn, json_object_get_number(obj, "id"),
-                    json_object_get_number(obj, "pos"));
+    mpd_run_seek_id(mpd.conn, (int)_get_number(wm->data, "id"),
+                    (int)_get_number(wm->data, "pos"));
     break;
   case MPD_RM_TRACK:
-    mpd_run_delete_id(mpd.conn, json_object_get_number(obj, "id"));
+    mpd_run_delete_id(mpd.conn, (int)_get_number(wm->data, "id"));
     break;
   case MPD_RM_ALL:
     mpd_run_clear(mpd.conn);
     break;
   case MPD_ADD_TRACK:
-    mpd_run_add(mpd.conn, json_object_get_string(obj, "path"));
+    mpd_run_add(mpd.conn, _get_key(wm->data, "path"));
     break;
   case MPD_ADD_PLAY_TRACK: {
-    int i = mpd_run_add_id(mpd.conn, json_object_get_string(obj, "path"));
+    int i = mpd_run_add_id(mpd.conn, _get_key(wm->data, "path"));
     if (i <= 0) {
-      JSON_Value *val = json_value_init_object();
-      JSON_Object *val_obj = json_value_get_object(val);
-      json_object_set_string(val_obj, "type", "error");
-      json_object_set_string(val_obj, "message", "Could not add song to queue");
-      char *str = json_serialize_to_string(val);
-      mg_ws_send(c, str, strlen(str), WEBSOCKET_OP_TEXT);
-      json_value_free(val);
+      jim_object_begin(&jim);
+      jim_set_string(&jim, "type", "error");
+      jim_set_string(&jim, "message", "Could not add song to queue");
+      jim_object_end(&jim);
+
+      mg_ws_send(c, buffer.data, buffer.size, WEBSOCKET_OP_TEXT);
+      buffer_free(&buffer);
     } else {
       mpd_run_play_id(mpd.conn, i);
     }
   } break;
   case MPD_ADD_PLAYLIST:
-    mpd_run_load(mpd.conn, json_object_get_string(obj, "name"));
+    mpd_run_load(mpd.conn, _get_key(wm->data, "name"));
     break;
   case MPD_TOGGLE_OUTPUT:
-    mpd_run_toggle_output(mpd.conn, json_object_get_number(obj, "id"));
+    mpd_run_toggle_output(mpd.conn, (int)_get_number(wm->data, "id"));
     break;
   case MPD_TOGGLE_RANDOM:
-    mpd_run_random(mpd.conn, json_object_get_boolean(obj, "mode"));
+    mpd_run_random(mpd.conn, (int)_get_number(wm->data, "mode"));
     break;
   case MPD_TOGGLE_REPEAT:
-    mpd_run_repeat(mpd.conn, json_object_get_boolean(obj, "mode"));
+    mpd_run_repeat(mpd.conn, (int)_get_number(wm->data, "mode"));
     break;
   case MPD_TOGGLE_SINGLE:
-    mpd_run_single(mpd.conn, json_object_get_boolean(obj, "mode"));
+    mpd_run_single(mpd.conn, (int)_get_number(wm->data, "mode"));
     break;
   case MPD_TOGGLE_CONSUME:
-    mpd_run_consume(mpd.conn, json_object_get_boolean(obj, "mode"));
+    mpd_run_consume(mpd.conn, (int)_get_number(wm->data, "mode"));
     break;
   case MPD_TOGGLE_CROSSFADE:
-    mpd_run_crossfade(mpd.conn, json_object_get_number(obj, "seconds"));
+    mpd_run_crossfade(mpd.conn, (int)_get_number(wm->data, "seconds"));
     break;
   case MPD_GET_QUEUE:
-    send_queue(c, json_object_get_number(obj, "offset"),
-               json_object_get_number(obj, "limit"));
+    send_queue(c, _get_number(wm->data, "offset"),
+               _get_number(wm->data, "limit"));
     break;
   case MPD_GET_BROWSE:
-    send_browse(c, json_object_get_string(obj, "path"),
-                json_object_get_number(obj, "offset"),
-                json_object_get_number(obj, "limit"));
+    send_browse(c, _get_key(wm->data, "path"), _get_number(wm->data, "offset"),
+                _get_number(wm->data, "limit"));
     break;
   case MPD_SAVE_QUEUE:
-    mpd_run_save(mpd.conn, json_object_get_string(obj, "name"));
+    mpd_run_save(mpd.conn, _get_key(wm->data, "name"));
     break;
   case MPD_SEARCH:
-    mpd_search(c, json_object_get_string(obj, "query"));
+    mpd_search(c, _get_key(wm->data, "query"));
     break;
   case MPD_GET_OUTPUTS:
     send_output(c);
     break;
   case MPD_PLAY_TRACK:
-    mpd_run_play_id(mpd.conn, json_object_get_number(obj, "id"));
+    mpd_run_play_id(mpd.conn, (int)_get_number(wm->data, "id"));
     break;
   case MPD_SEEK_CURRENT:
-    mpd_run_seek_current(mpd.conn, json_object_get_number(obj, "pos"),
-                         json_object_get_boolean(obj, "relative"));
+    mpd_run_seek_current(mpd.conn, (int)_get_number(wm->data, "pos"),
+                         (int)_get_number(wm->data, "relative"));
     break;
   case MPD_GET_COMMANDS:
     if (mpd_send_allowed_commands(mpd.conn)) {
       struct mpd_pair *command;
-      JSON_Value *dt = json_value_init_object();
-      JSON_Object *dt_obj = json_value_get_object(dt);
-      JSON_Value *cmds = json_value_init_array();
-      JSON_Array *cmds_arr = json_value_get_array(cmds);
+      jim_object_begin(&jim);
+      jim_set_string(&jim, "type", "commands");
+      jim_member_key(&jim, "commands");
+      jim_array_begin(&jim);
       while ((command = mpd_recv_command_pair(mpd.conn)) != NULL) {
-        json_array_append_string(cmds_arr, command->value);
+        jim_string(&jim, command->value);
         mpd_return_pair(mpd.conn, command);
       }
-      json_object_set_string(dt_obj, "type", "commands");
-      json_object_set_value(dt_obj, "commands", cmds);
-      char *msg = json_serialize_to_string(dt);
-      mg_ws_send(c, msg, strlen(msg), WEBSOCKET_OP_TEXT);
-      json_value_free(dt);
+      jim_array_end(&jim);
+      jim_object_end(&jim);
+
+      mg_ws_send(c, buffer.data, buffer.size, WEBSOCKET_OP_TEXT);
+      buffer_free(&buffer);
     }
     break;
   default:
     LOG(LL_ERROR, ("Unknown command: %d", cmd_id));
-    JSON_Value *dt = json_value_init_object();
-    JSON_Object *dt_obj = json_value_get_object(dt);
-    json_object_set_string(dt_obj, "type", "error");
-    json_object_set_string(dt_obj, "message", "Unknown command");
-    char *msg = json_serialize_to_string(dt);
-    mg_ws_send(c, msg, strlen(msg), WEBSOCKET_OP_TEXT);
-    json_value_free(dt);
+    jim_object_begin(&jim);
+    jim_set_string(&jim, "type", "error");
+    jim_set_string(&jim, "message", "Unknown command");
+    jim_object_end(&jim);
+
+    mg_ws_send(c, buffer.data, buffer.size, WEBSOCKET_OP_TEXT);
+    buffer_free(&buffer);
     break;
   }
-  json_value_free(data);
 }
 
 void mpd_search(struct mg_connection *c, const char *query) {
   struct mpd_song *curr_song;
-  JSON_Value *data = json_value_init_array();
-  JSON_Value *songs_val = json_value_init_array();
-  JSON_Array *songs = json_value_get_array(songs_val);
-  JSON_Object *obj = json_value_get_object(data);
+  Buffer buffer = {.data = NULL, .size = 0};
+  Jim jim = {
+      .sink = &buffer,
+      .write = (Jim_Write)buffer_write,
+  };
+
+  jim_object_begin(&jim);
   if (mpd.conn_state == MPD_CONNECTED) {
     if (mpd_search_db_songs(mpd.conn, false) == false) {
       LOG(LL_ERROR, ("MPD search failed: %s",
@@ -653,39 +768,38 @@ void mpd_search(struct mg_connection *c, const char *query) {
                              mpd_connection_get_error_message(mpd.conn)));
               mpd.conn_state = MPD_FAILURE;
             } else {
+              jim_member_key(&jim, "songs");
+              jim_array_begin(&jim);
               while ((curr_song = mpd_recv_song(mpd.conn)) != NULL) {
-                JSON_Value *song_val = json_value_init_object();
-                JSON_Object *song = json_value_get_object(song_val);
-                json_object_set_string(song, "title", get_title(curr_song));
-                json_object_set_string(
-                    song, "artist",
-                    mpd_song_get_tag(curr_song, MPD_TAG_ARTIST, 0));
-                json_object_set_string(
-                    song, "album",
-                    mpd_song_get_tag(curr_song, MPD_TAG_ALBUM, 0));
-                json_object_set_string(
-                    song, "genre",
-                    mpd_song_get_tag(curr_song, MPD_TAG_GENRE, 0));
-                json_object_set_number(song, "duration",
-                                       mpd_song_get_duration(curr_song));
-                json_object_set_number(song, "id", mpd_song_get_id(curr_song));
-                json_object_set_string(song, "uri",
-                                       mpd_song_get_uri(curr_song));
-                json_object_set_string(
-                    song, "year", mpd_song_get_tag(curr_song, MPD_TAG_DATE, 0));
-                json_array_append_value(songs, song_val);
+                jim_set_string(&jim, "title", get_title(curr_song));
+                jim_set_string(&jim, "artist",
+                               mpd_song_get_tag(curr_song, MPD_TAG_ARTIST, 0));
+                jim_set_string(&jim, "album",
+                               mpd_song_get_tag(curr_song, MPD_TAG_ALBUM, 0));
+                jim_set_string(&jim, "genre",
+                               mpd_song_get_tag(curr_song, MPD_TAG_GENRE, 0));
+                jim_set_integer(&jim, "duration",
+                                mpd_song_get_duration(curr_song));
+                jim_set_integer(&jim, "id", mpd_song_get_id(curr_song));
+                jim_set_string(&jim, "uri", mpd_song_get_uri(curr_song));
+                jim_set_string(&jim, "year",
+                               mpd_song_get_tag(curr_song, MPD_TAG_DATE, 0));
+
                 mpd_song_free(curr_song);
+                buffer_free(&buffer);
               }
+              jim_array_end(&jim);
             }
           }
         }
       }
     }
   }
-  json_object_set_string(obj, "type", "search");
-  json_object_set_value(obj, "songs", songs_val);
-  char *json = json_serialize_to_string_pretty(data);
-  mg_ws_send(c, json, strlen(json), WEBSOCKET_OP_TEXT);
+  jim_object_end(&jim);
+  jim_set_string(&jim, "type", "search");
+  mg_ws_send(c, buffer.data, buffer.size, WEBSOCKET_OP_TEXT);
+
+  buffer_free(&buffer);
 }
 
 void mpd_disconnect() {

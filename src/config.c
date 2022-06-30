@@ -105,7 +105,7 @@ void config_load(char *cfg_path) {
 void args_load(int argc, const char **argv) {
   char *unflagged[2];
 
-  const struct argoat_sprig sprigs[14] = {
+  const struct argoat_sprig sprigs[16] = {
       {NULL, 0, NULL, handle_main},
       {"H", 1, &configs.web_host, handle_str},
       {"P", 1, &configs.web_port, handle_str},
@@ -115,6 +115,8 @@ void args_load(int argc, const char **argv) {
       {"mpd-host", 1, &configs.host, handle_str},
       {"mpd-port", 1, &configs.port, handle_str},
       {"p", 1, &configs.port, handle_str},
+      {"s", 0, &args.serve, args_handle_bool},
+      {"serve", 0, &args.serve, args_handle_bool},
       {"v", 0, &args.verbose, args_handle_add},
       {"verbose", 0, &args.verbose, args_handle_add},
       {"version", 0, &args.version, args_handle_add},
@@ -122,7 +124,7 @@ void args_load(int argc, const char **argv) {
       {"web-port", 1, &configs.web_port, handle_str},
   };
 
-  struct argoat args = {sprigs, 14, unflagged, 0, 2};
+  struct argoat args = {sprigs, 16, unflagged, 0, 2};
 
   argoat_graze(&args, argc, (char **)argv);
 }
@@ -130,12 +132,14 @@ void args_load(int argc, const char **argv) {
 void args_help() {
   printf("Usage: htmpd [OPTION]...\n");
   printf("\n");
-  printf("  -H, --web-host=HOSTNAME  hostname to bind to (default: 0.0.0.0)\n");
-  printf("  -P, --web-port=PORT      port to bind to (default: 8000)\n");
   printf("  -h, --help               display this help and exit\n");
   printf("  -v, --verbose            increase verbosity\n");
   printf("  -V, --version            output version information and exit\n");
   printf("\n");
+  printf("  -s, --serve              serve web_root files instead of "
+         "embedded (default: false)\n");
+  printf("  -H, --web-host=HOSTNAME  hostname to bind to (default: 0.0.0.0)\n");
+  printf("  -P, --web-port=PORT      port to bind to (default: 8000)\n");
   printf("  -p, --mpd-port=PORT      port to connect to (default: 6600)\n");
   printf("  --mpd-host=HOSTNAME      hostname to connect to (default: "
          "127.0.0.1)\n");
@@ -161,6 +165,7 @@ void args_defaults() {
   args.help = false;
   args.verbose = 0;
   args.version = false;
+  args.serve = false;
 }
 
 void config_free() {

@@ -10,7 +10,17 @@
 
   import routes from './routes'
   import { getCommand } from './utils.js'
-  import { totalTime, queue, outputs, current, playing, status, browse, messages, stats } from './stores.js'
+  import {
+    totalTime,
+    queue,
+    outputs,
+    current,
+    playing,
+    status,
+    browse,
+    messages,
+    stats
+  } from './stores.js'
 
   let ws
   let currentSong = {}
@@ -177,10 +187,10 @@
 
 <Toast/>
 
-<main class="md:mx-1 overflow-hidden" >
-  <div class="min-h-screen flex flex-row bg-gray-100 overflow-hidden">
+<main class="relative md:mx-1 overflow-auto" >
+  <div class="min-h-screen flex flex-row bg-gray-100 overflow-auto">
     <SideBar />
-    <div class="flex flex-col flex-grow overflow-hidden">
+    <div class="flex flex-col flex-grow overflow-auto">
       <NavBar on:settings={ () => showSettings = true } />
       <Router routes={routes} />
     </div>

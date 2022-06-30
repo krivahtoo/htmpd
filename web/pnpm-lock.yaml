@@ -1,10 +1,11 @@
-lockfileVersion: 5.3
+lockfileVersion: 5.4
 
 specifiers:
   '@rollup/plugin-commonjs': 16.0.0
   '@rollup/plugin-node-resolve': 10.0.0
   autoprefixer: 10.4.2
   colorthief: 2.3.2
+  date-fns: ^2.28.0
   postcss: 8.4.14
   postcss-load-config: 3.1.4
   rollup: 2.75.7
@@ -20,6 +21,7 @@ specifiers:
 
 dependencies:
   colorthief: 2.3.2
+  date-fns: 2.28.0
   svelte-spa-router: 3.2.0
 
 devDependencies:
@@ -624,6 +626,11 @@ packages:
 
   /data-uri-to-buffer/0.0.3:
     resolution: {integrity: sha1-GK6XmmoMqZSwYlhTkW0mYruuCxo=}
+    dev: false
+
+  /date-fns/2.28.0:
+    resolution: {integrity: sha512-8d35hViGYx/QH0icHYCeLmsLmMUheMmTyV9Fcm6gvNwdw31yXXH+O85sOBJ+OLnLQMKZowvpKb6FgMIQjcpvQw==}
+    engines: {node: '>=0.11'}
     dev: false
 
   /deepmerge/4.2.2:

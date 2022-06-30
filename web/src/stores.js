@@ -12,11 +12,9 @@ export const browse = writable({
   limit: 20,
   offset: 0,
   total: 0,
-  dirs: [],
+  browse: [],
   dirsCount: 0,
-  files: [],
   filesCount: 0,
-  playlists: [],
   playlistsCount: 0,
 })
 
