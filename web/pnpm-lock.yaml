@@ -7,7 +7,7 @@ specifiers:
   colorthief: 2.3.2
   date-fns: 2.28.0
   postcss: 8.4.14
-  postcss-load-config: 3.1.4
+  postcss-load-config: 4.0.1
   rollup: 2.77.0
   rollup-plugin-css-only: 3.1.0
   rollup-plugin-livereload: 2.0.5
@@ -29,7 +29,7 @@ devDependencies:
   '@rollup/plugin-node-resolve': 10.0.0_rollup@2.77.0
   autoprefixer: 10.4.7_postcss@8.4.14
   postcss: 8.4.14
-  postcss-load-config: 3.1.4_postcss@8.4.14
+  postcss-load-config: 4.0.1_postcss@8.4.14
   rollup: 2.77.0
   rollup-plugin-css-only: 3.1.0_rollup@2.77.0
   rollup-plugin-livereload: 2.0.5
@@ -37,7 +37,7 @@ devDependencies:
   rollup-plugin-svelte: 7.1.0_u2xkkwatgesb7m2r7wgqgpnjr4
   rollup-plugin-terser: 7.0.2_rollup@2.77.0
   svelte: 3.49.0
-  svelte-preprocess: 4.10.7_v444kk5dhsdnvw4yvv6hlm5y6a
+  svelte-preprocess: 4.10.7_blrkfmplrezk6jx3arz7bdc3pa
   tailwindcss: 2.2.19_ugi4xkrfysqkt4c4y6hkyfj344
 
 packages:
@@ -1516,6 +1516,23 @@ packages:
       yaml: 1.10.2
     dev: true
 
+  /postcss-load-config/4.0.1_postcss@8.4.14:
+    resolution: {integrity: sha512-vEJIc8RdiBRu3oRAI0ymerOn+7rPuMvRXslTvZUKZonDHFIczxztIyJ1urxM1x9JXEikvpWWTUUqal5j/8QgvA==}
+    engines: {node: '>= 14'}
+    peerDependencies:
+      postcss: '>=8.0.9'
+      ts-node: '>=9.0.0'
+    peerDependenciesMeta:
+      postcss:
+        optional: true
+      ts-node:
+        optional: true
+    dependencies:
+      lilconfig: 2.0.5
+      postcss: 8.4.14
+      yaml: 2.1.1
+    dev: true
+
   /postcss-merge-longhand/5.0.4_postcss@8.4.14:
     resolution: {integrity: sha512-2lZrOVD+d81aoYkZDpWu6+3dTAAGkCKbV5DoRhnIR7KOULVrI/R7bcMjhrH9KTRy6iiHKqmtG+n/MMj1WmqHFw==}
     engines: {node: ^10 || ^12 || >=14.0}
@@ -2188,7 +2205,7 @@ packages:
       has-flag: 4.0.0
     dev: true
 
-  /svelte-preprocess/4.10.7_v444kk5dhsdnvw4yvv6hlm5y6a:
+  /svelte-preprocess/4.10.7_blrkfmplrezk6jx3arz7bdc3pa:
     resolution: {integrity: sha512-sNPBnqYD6FnmdBrUmBCaqS00RyCsCpj2BG58A1JBswNF7b0OKviwxqVrOL/CKyJrLSClrSeqQv5BXNg2RUbPOw==}
     engines: {node: '>= 9.11.2'}
     requiresBuild: true
@@ -2234,7 +2251,7 @@ packages:
       detect-indent: 6.1.0
       magic-string: 0.25.7
       postcss: 8.4.14
-      postcss-load-config: 3.1.4_postcss@8.4.14
+      postcss-load-config: 4.0.1_postcss@8.4.14
       sorcery: 0.10.0
       strip-indent: 3.0.0
       svelte: 3.49.0
@@ -2435,6 +2452,11 @@ packages:
   /yaml/1.10.2:
     resolution: {integrity: sha512-r3vXyErRCYJ7wg28yvBY5VSoAF8ZvlcW9/BwUzEtUsjvX/DKs24dIkuwjtuprwJJHsbyUbLApepYTR1BN4uHrg==}
     engines: {node: '>= 6'}
+    dev: true
+
+  /yaml/2.1.1:
+    resolution: {integrity: sha512-o96x3OPo8GjWeSLF+wOAbrPfhFOGY0W00GNaxCDv+9hkcDJEnev1yh8S7pgHF0ik6zc8sQLuL8hjHjJULZp8bw==}
+    engines: {node: '>= 14'}
     dev: true
 
   github.com/lokesh/quantize/f572abd2646b5944852535c8a26fdb958a5d7c4b:
