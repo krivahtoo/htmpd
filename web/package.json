@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "colorthief": "2.3.2",
-    "date-fns": "2.29.2",
+    "date-fns": "2.29.3",
     "svelte-spa-router": "3.3.0"
   }
 }
