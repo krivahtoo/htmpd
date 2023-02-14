@@ -802,7 +802,7 @@ void mpd_search(struct mg_connection *c, const char *query) {
   buffer_free(&buffer);
 }
 
-void mpd_disconnect() {
+void mpd_disconnect(void) {
   if (mpd.conn_state == MPD_CONNECTED) {
     LOG(LL_INFO, ("Disconnecting from MPD"));
     mpd_connection_free(mpd.conn);
