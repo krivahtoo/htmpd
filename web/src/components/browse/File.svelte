@@ -4,13 +4,16 @@
   export let duration = 0
   export let title = '--'
   export let artist = '--'
-  export const uri = ''
+  export let uri = ''
   export const year = ''
   export const album = ''
 
   import { secondsToString } from '../../utils.js'
 
-  const addToPlaying = () => {}
+  const addToPlaying = () => {
+    let event = new CustomEvent('add_track', { detail: uri })
+    document.dispatchEvent(event)
+  }
 </script>
 
 <tr

@@ -529,6 +529,7 @@ void mpd_poll(struct mg_mgr *mgr) {
           }
           mg_ws_send(c, buffer.data, buffer.size, WEBSOCKET_OP_TEXT);
           buffer_free(&buffer);
+          free(version);
         }
       }
       break;
@@ -637,11 +638,18 @@ void mpd_callback(struct mg_connection *c, struct mg_ws_message *wm) {
   case MPD_RM_ALL:
     mpd_run_clear(mpd.conn);
     break;
-  case MPD_ADD_TRACK:
-    mpd_run_add(mpd.conn, _get_key(wm->data, "path"));
-    break;
+  case MPD_ADD_TRACK: {
+    size_t vlen = 0;
+    char *raw = parse("path", 4, wm->data.ptr, wm->data.len, &vlen);
+    char *path = strndup(raw, vlen);
+    mpd_run_add(mpd.conn, path);
+    free(path);
+  } break;
   case MPD_ADD_PLAY_TRACK: {
-    int i = mpd_run_add_id(mpd.conn, _get_key(wm->data, "path"));
+    size_t vlen = 0;
+    char *raw = parse("path", 4, wm->data.ptr, wm->data.len, &vlen);
+    char *path = strndup(raw, vlen);
+    int i = mpd_run_add_id(mpd.conn, path);
     if (i <= 0) {
       jim_object_begin(&jim);
       jim_set_string(&jim, "type", "error");
@@ -653,10 +661,15 @@ void mpd_callback(struct mg_connection *c, struct mg_ws_message *wm) {
     } else {
       mpd_run_play_id(mpd.conn, i);
     }
+    free(path);
   } break;
-  case MPD_ADD_PLAYLIST:
-    mpd_run_load(mpd.conn, _get_key(wm->data, "name"));
-    break;
+  case MPD_ADD_PLAYLIST: {
+    size_t vlen = 0;
+    char *raw = parse("name", 4, wm->data.ptr, wm->data.len, &vlen);
+    char *name = strndup(raw, vlen);
+    mpd_run_load(mpd.conn, name);
+    free(name);
+  } break;
   case MPD_TOGGLE_OUTPUT:
     mpd_run_toggle_output(mpd.conn, (int)_get_number(wm->data, "id"));
     break;
@@ -683,9 +696,13 @@ void mpd_callback(struct mg_connection *c, struct mg_ws_message *wm) {
     send_browse(c, _get_key(wm->data, "path"), _get_number(wm->data, "offset"),
                 _get_number(wm->data, "limit"));
     break;
-  case MPD_SAVE_QUEUE:
-    mpd_run_save(mpd.conn, _get_key(wm->data, "name"));
-    break;
+  case MPD_SAVE_QUEUE: {
+    size_t vlen = 0;
+    char *raw = parse("name", 4, wm->data.ptr, wm->data.len, &vlen);
+    char *name = strndup(raw, vlen);
+    mpd_run_save(mpd.conn, name);
+    free(name);
+  } break;
   case MPD_SEARCH:
     mpd_search(c, _get_key(wm->data, "query"));
     break;

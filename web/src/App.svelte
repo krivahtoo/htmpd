@@ -137,6 +137,11 @@
         runCommand('add_track', { path: e.detail })
       }
     })
+    document.addEventListener('add_playlist', function (e) {
+      if (connected) {
+        runCommand('add_playlist', { name: e.detail })
+      }
+    })
     document.addEventListener('browse', function (e) {
       if (connected) {
         runCommand('browse', e.detail)

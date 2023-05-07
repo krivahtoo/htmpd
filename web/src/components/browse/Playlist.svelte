@@ -5,7 +5,10 @@
 
   import { toDate, formatDistance } from 'date-fns'
 
-  const addToPlaying = () => {}
+  const addToPlaying = () => {
+    let event = new CustomEvent('add_playlist', { detail: path })
+    document.dispatchEvent(event)
+  }
 </script>
 
 <tr
