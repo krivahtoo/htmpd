@@ -16,10 +16,10 @@ static const struct embedded_file embedded_files[] = {
 footer = """  {NULL, NULL, NULL, 0}
 };
 
-const struct embedded_file *find_embedded_file(const char *name) {
+const struct embedded_file *find_embedded_file(const struct mg_str name) {
   const struct embedded_file *p;
   for (p = embedded_files; p->name != NULL; p++)
-    if (!strcmp(p->name, name))
+    if (!strncmp(p->name, (char *)name.ptr, name.len))
       return p;
   return NULL;
 }

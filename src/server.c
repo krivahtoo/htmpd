@@ -40,14 +40,11 @@ void send_embedded_file(struct mg_connection *c,
 
 // Handle http requests for embedded files.
 static void http_callback(struct mg_connection *c, struct mg_http_message *hm) {
-  // NOTE: Somehow mongoose doesn't parse uri correctly.
-  char *delim = " ";
-  char *uri = strtok((char *)hm->uri.ptr, delim);
   const struct embedded_file *req_file;
-  if (!strcmp(uri, "/")) {
-    req_file = find_embedded_file("/index.html");
+  if (!strncmp((char *)hm->uri.ptr, "/", hm->uri.len)) {
+    req_file = find_embedded_file(mg_str("/index.html"));
   } else {
-    req_file = find_embedded_file(uri);
+    req_file = find_embedded_file(hm->uri);
   }
   if (req_file) {
     send_embedded_file(c, req_file);
@@ -95,11 +92,9 @@ void server_handler(struct mg_connection *c, int ev, void *ev_data,
         // c2->is_hexdumping = 1;
       }
     } else if (mg_http_match_uri(hm, "/*.mp3")) {
-      char *delim = " ";
       char out[100];
-      char *uri = strtok((char *)hm->uri.ptr, delim);
-      uri = strtok(uri, "/");
-      urldecode(out, uri);
+      char *uri = strndup((char *)hm->uri.ptr, hm->uri.len);
+      urldecode(out, strtok(uri, "/"));
 
       char *tmp_img = "/tmp/.htmpd-%s-artwork.png";
       char *image = malloc(strlen(tmp_img) + strlen(out));
@@ -111,17 +106,20 @@ void server_handler(struct mg_connection *c, int ev, void *ev_data,
         LOG(LL_INFO, ("Serving cached %s", image));
         mg_http_serve_file(c, hm, image, &opts);
       } else {
-        GdkPixbuf *pixbuf = retrieve_artwork(configs.music_dir, out);
+        GdkPixbuf *scaled, *pixbuf = retrieve_artwork(configs.music_dir, out);
         if (pixbuf) {
-          pixbuf =
+          scaled =
               gdk_pixbuf_scale_simple(pixbuf, 500, 500, GDK_INTERP_BILINEAR);
-          gdk_pixbuf_save(pixbuf, image, "png", NULL, NULL);
+          gdk_pixbuf_save(scaled, image, "png", NULL, NULL);
           mg_http_serve_file(c, hm, image, &opts);
+          free(scaled);
+          free(pixbuf);
         } else {
           mg_http_reply(c, 404, "", "Not found\n");
         }
       }
       free(image);
+      free(uri);
     } else {
       if (args.serve) {
         // Serve static files from web_root.
@@ -132,12 +130,12 @@ void server_handler(struct mg_connection *c, int ev, void *ev_data,
       }
     }
   } else if (ev == MG_EV_WS_MSG) {
-    struct mg_ws_message *wm = (struct mg_ws_message *)ev_data;
-    mpd_callback(c, wm);
+    mpd_callback(c, (struct mg_ws_message *)ev_data);
   } else if (ev == MG_EV_CLOSE) {
-    if (c2 != NULL)
+    if (c2 != NULL) {
       c2->is_closing = 1;
-    c->fn_data = NULL;
+      c2->fn_data = NULL;
+    }
   }
   (void)fn_data;
 }

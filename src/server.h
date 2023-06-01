@@ -14,6 +14,6 @@ struct embedded_file {
 
 void server_handler(struct mg_connection *c, int ev, void *ev_data,
                            void *fn_data);
-const struct embedded_file *find_embedded_file(const char *name);
+const struct embedded_file *find_embedded_file(const struct mg_str name);
 
 #endif
