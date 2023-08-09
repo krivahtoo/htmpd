@@ -9,13 +9,16 @@ VERSION=$(shell git describe --long --tags)
 
 ASSETS=index.html favicon.png logo.svg build/bundle.js build/bundle.css
 
-htmpd: src/*.c src/*.h version.h
+htmpd: src/*.c src/*.h src/version.h src/assets.c
 	$(CC) -o htmpd $(FILES)  $(CFLAGS) $(LIBS)
 
-assets: dist/index.html dist/build/bundle.js dist/build/bundle.css
+src/assets.c: dist/index.html dist/build/bundle.js dist/build/bundle.css
 	cd dist && python ./../../tools/bin2c.py ./../../src/assets.c $(ASSETS)
 
-version.h: src/version.def.h
+dist/build/bundle.js:
+	cd web && pnpm run build
+
+src/version.h: src/version.def.h
 	sed 's/v0.0.0/$(VERSION)/' src/version.def.h > src/version.h
 
 compile_commands:
