@@ -69,18 +69,18 @@
       {/if}
       <div class="flex-grow-0 mr-2 sm:mr-3 overflow-hidden">
         <h2 class="text-sm leading-5 font-medium { (song.id == currentStatus.current) ? 'text-green-500' : 'text-gray-900 '}">
-          { (song.title.length > 30) ? song.title.substr(0, 29) + '...' : song.title }
+          { (song.title && song.title.length > 30) ? song.title.substr(0, 29) + '...' : song.title }
         </h2>
         <h3
           class="text-sm leading-5 font-medium { (song.id == currentStatus.current) ? 'text-green-300' : 'text-gray-500' }">
-          { (song.artist.length > 25) ? song.artist.substr(0, 24) + '...' : song.artist } | { song.year || '-' }
+          { (song.artist && song.artist.length > 25) ? song.artist.substr(0, 24) + '...' : song.artist } | { song.year || '-' }
         </h3>
       </div>
     </div>
   </td>
   <td class="hidden md:block p-2 whitespace-nowrap">
     <div class="text-left font-medium">
-      { (song.album.length > 25) ? song.album.substr(0, 24) + '...' : song.album }
+      { (song.album && song.album.length > 25) ? song.album.substr(0, 24) + '...' : song.album }
     </div>
   </td>
   <td class="p-2 whitespace-nowrap">
